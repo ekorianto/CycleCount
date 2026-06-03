@@ -3,221 +3,225 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta http-equiv="Permissions-Policy" content="camera=(self)">
-<title>QR / Barcode Scanner — Cycle Count Pro GSSI</title>
+<title>Scan Barcode — Cycle Count Pro GSSI</title>
 <style>
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { margin: 0; padding: 0; height: 100%; background: #0f172a; color: #f1f5f9;
+html, body { margin: 0; padding: 0; min-height: 100%; background: #0f172a; color: #f1f5f9;
 font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif; }
+
 header {
-  padding: 16px;
+  padding: 14px;
   background: linear-gradient(135deg, #1e40af, #2563eb);
   text-align: center;
   position: relative;
 }
 header .logo { font-size: 28px; margin-bottom: 2px; }
-header h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -.01em; }
+header h1 { margin: 0; font-size: 18px; font-weight: 700; }
 header .sub { font-size: 12px; opacity: .75; margin-top: 2px; }
-.container { padding: 16px; max-width: 480px; margin: 0 auto; }
-.info-card {
-  background: rgba(255,255,255,.06);
-  padding: 12px 14px;
-  border-radius: 10px;
-  font-size: 13px;
-  line-height: 1.5;
-  margin-bottom: 12px;
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
+header .user-badge {
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  background: rgba(255,255,255,.15); padding: 4px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 600; color: #fff;
 }
-.info-card .icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
 
-/* ── Start button (shown first) ── */
-.start-camera-box {
-  text-align: center;
-  padding: 40px 20px;
-  background: rgba(255,255,255,.04);
-  border-radius: 14px;
-  border: 2px dashed rgba(37,99,235,.3);
-  margin-bottom: 12px;
-}
-.start-camera-box .big-icon { font-size: 3.5rem; margin-bottom: 14px; }
-.start-camera-box p { color: #94a3b8; font-size: 14px; margin: 0 0 18px; line-height: 1.5; }
-.btn-start-camera {
-  display: inline-block;
-  padding: 14px 36px;
-  border-radius: 12px;
-  border: none;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  color: white;
-  font-size: 17px;
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
-  transition: transform .15s, box-shadow .2s;
-  box-shadow: 0 4px 20px rgba(37,99,235,.35);
-}
-.btn-start-camera:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(37,99,235,.45); }
-.btn-start-camera:active { transform: scale(.96); }
+.container { padding: 12px 16px 20px; max-width: 480px; margin: 0 auto; }
 
-/* ── Scanner area (hidden until started) ── */
-.scanner-area { display: none; }
+/* Tabs */
+.tabs {
+  display: flex; gap: 4px; background: rgba(255,255,255,.05);
+  border-radius: 10px; padding: 3px; margin-bottom: 14px;
+}
+.tab {
+  flex: 1; text-align: center; padding: 9px 6px; border-radius: 8px;
+  font-size: 12px; font-weight: 600; cursor: pointer; transition: all .2s;
+  border: none; background: transparent; color: #94a3b8; font-family: inherit;
+}
+.tab.active { background: #2563eb; color: white; }
+.tab:hover:not(.active) { color: #f1f5f9; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* Camera */
+.camera-box {
+  text-align: center; padding: 24px 20px;
+  background: rgba(255,255,255,.04); border-radius: 14px;
+  border: 2px dashed rgba(37,99,235,.3); margin-bottom: 12px;
+}
+.camera-box .icon { font-size: 3rem; margin-bottom: 10px; }
+.camera-box p { color: #94a3b8; font-size: 14px; margin: 0 0 16px; line-height: 1.5; }
+
 #reader {
-  width: 100%;
-  max-width: 420px;
-  margin: 0 auto 12px;
-  border-radius: 12px;
-  overflow: hidden;
-  border: 2px solid rgba(37, 99, 235, .3);
+  width: 100%; max-width: 380px; margin: 0 auto 12px;
+  border-radius: 12px; overflow: hidden;
+  border: 2px solid rgba(37,99,235,.3); display: none;
 }
 #reader video { border-radius: 12px; }
 
+.camera-actions {
+  display: none; gap: 8px; margin-top: 8px;
+}
+.camera-actions.show { display: flex; }
+.camera-actions .btn-sm { flex: 1; padding: 9px; font-size: 12px; }
+
+/* Last scan */
+.last-scan {
+  display: none; margin-top: 10px; padding: 12px;
+  background: rgba(5,150,105,.1); border: 1px solid rgba(5,150,105,.3);
+  border-radius: 10px; text-align: center;
+}
+.last-scan .code { font-size: 18px; font-weight: 700; color: #34d399; word-break: break-all; }
+.last-scan .label { font-size: 11px; color: #6ee7b7; margin-bottom: 4px; }
+.last-scan .ts { font-size: 10px; color: #6ee7b7; opacity: .7; }
+
+/* Result toast */
 #result {
-  margin-top: 10px;
-  padding: 14px;
-  border-radius: 10px;
-  font-weight: 700;
-  font-size: 16px;
-  display: none;
-  word-break: break-all;
-  text-align: center;
+  margin-top: 10px; padding: 14px; border-radius: 10px;
+  font-weight: 700; font-size: 16px; display: none; word-break: break-all; text-align: center;
 }
 #result.success { background: #059669; color: white; display: block; }
 #result.error { background: #dc2626; color: white; display: block; }
 #result.info { background: #2563eb; color: white; display: block; }
+#result.warning { background: #d97706; color: white; display: block; }
 
-#countdown {
-  display: none;
-  text-align: center;
-  margin-top: 8px;
-  font-size: 13px;
-  color: #94a3b8;
-}
+/* Manual input */
+.manual-section { margin-top: 0; }
+.manual-section p { font-size: 13px; color: #94a3b8; margin: 0 0 12px; line-height: 1.5; }
 
-.camera-actions {
-  display: none;
-  gap: 8px;
-  margin-top: 8px;
-}
-.camera-actions.show { display: flex; }
-.camera-actions .btn { width: auto; flex: 1; padding: 10px; font-size: 13px; }
-
-/* ── Manual input ── */
-.manual-section {
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(255,255,255,.08);
-}
-.manual-section label {
-  display: block;
-  font-size: 12px;
-  opacity: .7;
-  margin-bottom: 6px;
-  text-transform: uppercase;
-  letter-spacing: .04em;
-}
 input[type="text"] {
-  width: 100%;
-  padding: 12px 14px;
-  font-size: 16px;
-  border: 1px solid rgba(255,255,255,.12);
-  border-radius: 8px;
-  background: rgba(255,255,255,.06);
-  color: #f1f5f9;
-  font-family: inherit;
-  outline: none;
-  transition: border-color .2s;
+  width: 100%; padding: 12px 14px; font-size: 16px;
+  border: 1px solid rgba(255,255,255,.12); border-radius: 8px;
+  background: rgba(255,255,255,.06); color: #f1f5f9;
+  font-family: inherit; outline: none; transition: border-color .2s;
 }
 input[type="text"]:focus { border-color: #3b82f6; }
 input[type="text"]::placeholder { color: #64748b; }
 
 .btn {
-  display: block;
-  width: 100%;
-  padding: 13px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  font-size: 15px;
-  font-weight: 600;
-  font-family: inherit;
-  margin-top: 8px;
-  transition: opacity .2s, transform .1s;
+  display: block; width: 100%; padding: 13px; border-radius: 8px;
+  border: none; cursor: pointer; font-size: 15px; font-weight: 600;
+  font-family: inherit; margin-top: 8px; transition: opacity .2s, transform .1s;
 }
 .btn:active { transform: scale(.97); }
 .btn-primary { background: #2563eb; color: white; }
 .btn-primary:hover { opacity: .92; }
+.btn-success { background: #059669; color: white; }
+.btn-success:hover { opacity: .92; }
 .btn-ghost {
-  background: transparent;
-  color: #94a3b8;
+  background: transparent; color: #94a3b8;
   border: 1px solid rgba(255,255,255,.1);
 }
 .btn-ghost:hover { background: rgba(255,255,255,.05); color: #f1f5f9; }
 
-.status-bar {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-  font-size: 12px;
-  color: #64748b;
+.chrome-fix-box {
+  display: none; background: rgba(220,38,38,.1);
+  border: 1px solid rgba(220,38,38,.3); border-radius: 10px;
+  padding: 14px; margin-top: 10px; text-align: left; font-size: 13px; line-height: 1.6;
 }
-.status-bar .dot {
-  display: inline-block;
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: #dc2626;
+.chrome-fix-box h4 { margin: 0 0 8px; font-size: 13px; color: #fca5a5; }
+.chrome-fix-box ol { margin: 0; padding-left: 18px; color: #cbd5e1; }
+.chrome-fix-box ol li { margin-bottom: 4px; }
+.chrome-fix-box code { background: rgba(0,0,0,.3); padding: 2px 6px; border-radius: 4px; font-size: 12px; color: #f1f5f9; }
+
+.fb-status {
+  display: flex; justify-content: center; align-items: center; gap: 8px;
+  margin-top: 14px; font-size: 12px; color: #64748b;
 }
-.status-bar .dot.active { background: #22c55e; }
+.fb-status .dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #dc2626;
+}
+.fb-status .dot.active { background: #22c55e; }
+.fb-status .dot.waiting { background: #eab308; }
+
+.spinner {
+  display: inline-block; width: 20px; height: 20px;
+  border: 2px solid rgba(255,255,255,.2); border-top-color: white;
+  border-radius: 50%; animation: spin .7s linear infinite;
+  margin-right: 6px; vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Countdown bar */
+.countdown-bar {
+  display: none; margin-top: 10px; padding: 10px 14px;
+  background: rgba(37,99,235,.1); border-radius: 8px; text-align: center;
+  font-size: 13px; color: #93c5fd;
+}
+.countdown-bar strong { color: #60a5fa; }
 </style>
 </head>
 <body>
+
 <header>
   <div class="logo">📋</div>
-  <h1>Scan Barcode / QR</h1>
+  <h1>Scan Barcode</h1>
   <div class="sub">Cycle Count Pro — GSSI</div>
+  <div class="user-badge" id="userBadge">👤 -</div>
 </header>
+
 <div class="container">
 
-  <div class="info-card">
-    <span class="icon">📷</span>
-    <span>Arahkan kamera ke barcode atau QR. Hasil scan akan otomatis dikirim ke app Cycle Count.</span>
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" data-tab="camera" onclick="switchTab('camera')">📷 Kamera</button>
+    <button class="tab" data-tab="manual" onclick="switchTab('manual')">⌨️ Manual</button>
   </div>
 
-  <!-- ===== START BUTTON (ditampilkan pertama) ===== -->
-  <div class="start-camera-box" id="startBox">
-    <div class="big-icon">📸</div>
-    <p>Klik tombol di bawah untuk mengaktifkan kamera.<br>
-    Browser akan meminta izin — pilih <strong>Izinkan</strong>.</p>
-    <button class="btn-start-camera" id="btnStartCamera" onclick="startCameraNow()">
-      📷 Mulai Kamera
-    </button>
-  </div>
+  <!-- TAB 1: CAMERA -->
+  <div class="tab-panel active" id="panelCamera">
+    <div class="camera-box" id="cameraStartBox">
+      <div class="icon">📷</div>
+      <p>Klik tombol untuk mengaktifkan kamera.<br>
+      Browser akan meminta izin — pilih <strong>Izinkan</strong>.</p>
+      <button class="btn btn-primary" onclick="startCameraNow()" id="btnStartCamera" style="display:inline-block;width:auto;padding:12px 32px">📷 Mulai Kamera</button>
+    </div>
 
-  <!-- ===== SCANNER AREA (muncul setelah klik) ===== -->
-  <div class="scanner-area" id="scannerArea">
     <div id="reader"></div>
-    <div id="result"></div>
-    <div id="countdown">↩️ Mengembalikan ke app dalam <span id="countdownSec">2</span> detik...</div>
+
     <div class="camera-actions" id="cameraActions">
-      <button class="btn btn-ghost" onclick="restartScanner()">🔄 Mulai Ulang</button>
-      <button class="btn btn-ghost" onclick="switchCamera()">🔄 Ganti Kamera</button>
+      <button class="btn btn-ghost btn-sm" onclick="restartCamera()">🔄 Ulang</button>
+      <button class="btn btn-ghost btn-sm" onclick="switchCamera()">🔄 Ganti Kamera</button>
+    </div>
+
+    <div class="chrome-fix-box" id="chromeFixBox">
+      <h4>⚠️ Kamera diblokir Chrome</h4>
+      <ol>
+        <li>Klik ikon <strong>🔒</strong> di address bar (samping kiri URL)</li>
+        <li>Klik <strong>Site settings</strong></li>
+        <li>Cari <strong>Camera</strong> → ubah <strong>Block</strong> → <strong>Allow</strong></li>
+        <li><strong>Reload</strong> halaman ini (F5)</li>
+      </ol>
     </div>
   </div>
 
-  <!-- ===== MANUAL INPUT ===== -->
-  <div class="manual-section">
-    <label>Atau ketik kode manual</label>
-    <input type="text" id="manualInput" placeholder="Ketik kode material / barcode..." autocomplete="off" onkeydown="if(event.key==='Enter')submitManual()">
-    <button class="btn btn-primary" onclick="submitManual()">✅ Gunakan Kode Ini</button>
+  <!-- TAB 2: MANUAL -->
+  <div class="tab-panel" id="panelManual">
+    <div class="manual-section">
+      <p>Ketik kode material atau scan dengan <strong>barcode scanner USB</strong> (colok → scan → otomatis terisi).</p>
+      <input type="text" id="manualInput" placeholder="Ketik atau scan barcode di sini..." autocomplete="off" onkeydown="if(event.key==='Enter')submitManual()">
+      <button class="btn btn-success" onclick="submitManual()">✅ Kirim ke App</button>
+    </div>
   </div>
 
-  <button class="btn btn-ghost" onclick="goBack()">← Kembali ke App</button>
+  <!-- Last scan indicator -->
+  <div class="last-scan" id="lastScan">
+    <div class="label">✅ Terkirim ke Firebase — App akan mendeteksi otomatis</div>
+    <div class="code" id="lastScanCode">-</div>
+    <div class="ts" id="lastScanTs">-</div>
+  </div>
 
-  <div class="status-bar">
-    <span class="dot" id="statusDot"></span>
-    <span id="statusText">Siap</span>
+  <!-- Result -->
+  <div id="result"></div>
+
+  <!-- Countdown -->
+  <div class="countdown-bar" id="countdownBar">
+    ↩️ Mengembalikan ke app dalam <strong id="countdownSec">2</strong> detik...
+  </div>
+
+  <button class="btn btn-ghost" onclick="goBack()" style="margin-top:6px">← Kembali ke App</button>
+
+  <div class="fb-status">
+    <span class="dot" id="fbDot"></span>
+    <span id="fbText">Siap — pilih metode scan</span>
   </div>
 </div>
 
@@ -225,120 +229,201 @@ input[type="text"]::placeholder { color: #64748b; }
 <script>
 (function() {
   'use strict';
+
+  // ── CONFIG ──
+  var FIREBASE_DB = 'https://reservasi-efa36-default-rtdb.asia-southeast1.firebasedatabase.app';
   var callback = null;
+  var userName = '';
   var scanner = null;
   var currentCamId = null;
   var cameras = [];
   var isRedirecting = false;
   var redirectTimer = null;
   var cameraStarted = false;
+  var scanCount = 0;
 
+  // ── HELPERS ──
   function getParam(key) {
     var u = new URL(window.location.href);
     return u.searchParams.get(key);
   }
 
-  function init() {
-    callback = getParam('callback');
-    if (!callback) {
-      showResult('Callback URL tidak ditemukan. Buka scanner dari app Cycle Count Pro.', 'error');
-      setStatus('offline', 'Callback tidak ada');
-      document.getElementById('startBox').style.display = 'none';
-      return;
-    }
-    setStatus('waiting', 'Tekan tombol Mulai Kamera');
+  function fbUrl(path) {
+    return FIREBASE_DB.replace(/\/$/, '') + '/' + path + '.json';
   }
 
-  // ── Dipanggil saat user klik "Mulai Kamera" (user gesture!) ──
+  function writeToFirebase(code) {
+    if (!code || !userName) return;
+    var data = {
+      code: code,
+      user: userName,
+      ts: Date.now(),
+      date: new Date().toISOString(),
+      scanId: scanCount
+    };
+    // Write to Firebase under cycleCount/scans/{username}
+    return fetch(fbUrl('cycleCount/scans/' + encodeURIComponent(userName)), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }).then(function(r) { return r.json(); });
+  }
+
+  function returnToApp(code) {
+    if (!callback) return;
+    var sep = callback.indexOf('?') >= 0 ? '&' : '?';
+    var url = callback + sep + 'code=' + encodeURIComponent(code);
+    window.location.href = url;
+  }
+
+  function showResult(text, type) {
+    var el = document.getElementById('result');
+    el.className = '';
+    el.classList.add(type || 'info');
+    el.innerHTML = text;
+    el.style.display = 'block';
+  }
+
+  function hideResult() {
+    document.getElementById('result').style.display = 'none';
+    document.getElementById('result').className = '';
+  }
+
+  function setStatus(state, text) {
+    var dot = document.getElementById('fbDot');
+    var label = document.getElementById('fbText');
+    dot.className = 'dot' + (state === 'active' ? ' active' : state === 'waiting' ? ' waiting' : '');
+    label.textContent = text || '';
+  }
+
+  function showLastScan(code) {
+    var el = document.getElementById('lastScan');
+    document.getElementById('lastScanCode').textContent = code;
+    document.getElementById('lastScanTs').textContent = new Date().toLocaleTimeString('id-ID');
+    el.style.display = 'block';
+  }
+
+  function startCountdown(code) {
+    var sec = 2;
+    document.getElementById('countdownBar').style.display = 'block';
+    document.getElementById('countdownSec').textContent = sec;
+    if (redirectTimer) clearInterval(redirectTimer);
+    redirectTimer = setInterval(function() {
+      sec--;
+      if (sec <= 0) {
+        clearInterval(redirectTimer);
+        returnToApp(code);
+      } else {
+        document.getElementById('countdownSec').textContent = sec;
+      }
+    }, 1000);
+  }
+
+  // ── TAB SYSTEM ──
+  window.switchTab = function(tabId) {
+    document.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.toggle('active', t.dataset.tab === tabId);
+    });
+    document.querySelectorAll('.tab-panel').forEach(function(p) {
+      p.classList.toggle('active', p.id === 'panel' + tabId.charAt(0).toUpperCase() + tabId.slice(1));
+    });
+    hideResult();
+    if (tabId === 'manual') {
+      setTimeout(function() { document.getElementById('manualInput').focus(); }, 100);
+    }
+  };
+
+  // ── HANDLE SCAN RESULT ──
+  function handleScan(code) {
+    if (isRedirecting || !code) return;
+    isRedirecting = true;
+    scanCount++;
+
+    hideResult();
+    setStatus('waiting', 'Mengirim ke Firebase...');
+
+    // Stop kamera jika aktif
+    if (scanner) {
+      try { scanner.stop(); } catch(e) {}
+    }
+
+    // Write ke Firebase
+    writeToFirebase(code).then(function() {
+      showResult('✅ ' + code, 'success');
+      showLastScan(code);
+      setStatus('active', 'Terkirim ke Firebase');
+      document.getElementById('cameraActions').classList.remove('show');
+
+      // Auto-redirect setelah 2 detik
+      startCountdown(code);
+    }).catch(function(err) {
+      // Firebase gagal — tetap lanjut via redirect
+      console.warn('Firebase write failed:', err);
+      showResult('✅ ' + code + ' (Firebase offline)', 'success');
+      showLastScan(code);
+      startCountdown(code);
+    });
+  }
+
+  // ── CAMERA ──
   window.startCameraNow = function() {
     if (cameraStarted) return;
     cameraStarted = true;
-
-    // Langkah 1: minta izin kamera EXPLISIT dengan getUserMedia
-    // (Browser butuh user gesture untuk ini — tombol klik menyediakannya)
     setStatus('waiting', 'Meminta izin kamera...');
     document.getElementById('btnStartCamera').textContent = '⏳ Meminta izin...';
+    document.getElementById('btnStartCamera').disabled = true;
+    document.getElementById('chromeFixBox').style.display = 'none';
 
     navigator.mediaDevices.getUserMedia({ video: true })
       .then(function(stream) {
-        // Izin diberikan! Hentikan stream sementara, kita akan pakai html5-qrcode
         stream.getTracks().forEach(function(t) { t.stop(); });
-
-        // Sembunyikan start box, tampilkan scanner area
-        document.getElementById('startBox').style.display = 'none';
-        document.getElementById('scannerArea').style.display = 'block';
-
-        // Inisialisasi scanner
+        document.getElementById('cameraStartBox').style.display = 'none';
+        document.getElementById('reader').style.display = 'block';
         initScanner();
       })
       .catch(function(err) {
-        // Izin ditolak
         document.getElementById('btnStartCamera').textContent = '📷 Mulai Kamera';
+        document.getElementById('btnStartCamera').disabled = false;
         cameraStarted = false;
-        setStatus('offline', 'Kamera ditolak');
+        setStatus('offline', 'Kamera diblokir');
 
         if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-          showResult(
-            '⚠️ Akses kamera DIBLOKIR oleh browser.<br><br>' +
-            '📌 <strong>Cara memperbaiki (pilih salah satu):</strong><br><br>' +
-            '🔹 <strong>CARA 1 — Klik ikon 🔒 di address bar</strong><br>' +
-            '(samping kiri URL) → klik Site settings<br>' +
-            '→ cari Camera → ubah Block → <strong>Allow</strong><br>' +
-            '→ reload halaman ini<br><br>' +
-            '🔹 <strong>CARA 2 — Buka pengaturan Chrome</strong><br>' +
-            'Ketik di tab baru: <code>chrome://settings/content/camera</code><br>' +
-            '→ pastikan "Sites can ask for camera" ON<br>' +
-            '→ hapus github.io dari daftar Block<br><br>' +
-            '🔹 <strong>CARA 3 — Coba incognito / browser lain</strong><br>' +
-            'Buka URL ini di jendela Incognito (Ctrl+Shift+N)<br>' +
-            'atau pakai Edge / Firefox<br><br>' +
-            '✅ <strong>Atau gunakan input manual</strong> di bawah ↓',
-            'error'
-          );
+          document.getElementById('chromeFixBox').style.display = 'block';
+          showResult('⚠️ Chrome memblokir akses kamera.<br>Ikuti panduan di bawah, atau gunakan tab <strong>⌨️ Manual</strong>.', 'error');
         } else if (err.name === 'NotFoundError') {
-          showResult('Tidak ada kamera ditemukan. Gunakan input manual di bawah.', 'info');
+          showResult('Tidak ada kamera ditemukan. Gunakan tab <strong>⌨️ Manual</strong>.', 'info');
         } else {
-          showResult('Gagal akses kamera: ' + err.message + '. Gunakan input manual.', 'error');
+          showResult('Gagal akses kamera: ' + err.message, 'error');
         }
       });
   };
 
-  // ── Inisialisasi scanner setelah izin diberikan ──
   function initScanner() {
     setStatus('waiting', 'Menyiapkan scanner...');
-
     if (!window.Html5Qrcode) {
-      showResult('Library scanner gagal dimuat. Coba refresh halaman.', 'error');
+      showResult('Library scanner gagal dimuat. Coba refresh.', 'error');
       setStatus('offline', 'Library error');
-      document.getElementById('cameraActions').classList.add('show');
       return;
     }
-
-    try {
-      scanner = new Html5Qrcode('reader');
-    } catch(e) {
-      showResult('Gagal inisialisasi scanner: ' + e.message, 'error');
+    try { scanner = new Html5Qrcode('reader'); } catch(e) {
+      showResult('Gagal inisialisasi: ' + e.message, 'error');
       setStatus('offline', 'Init error');
-      document.getElementById('cameraActions').classList.add('show');
       return;
     }
-
     Html5Qrcode.getCameras().then(function(cams) {
       cameras = cams || [];
       if (cameras.length === 0) {
-        showResult('Tidak ada kamera ditemukan. Gunakan input manual.', 'info');
+        showResult('Tidak ada kamera. Gunakan tab Manual.', 'info');
         setStatus('offline', 'No camera');
         return;
       }
       document.getElementById('cameraActions').classList.add('show');
       var backCam = cameras.find(function(c) { return /back|rear|environment/i.test(c.label); });
-      var targetCam = backCam || cameras[0];
-      currentCamId = targetCam.id;
+      currentCamId = (backCam || cameras[0]).id;
       startCamera(currentCamId);
     }).catch(function(err) {
-      showResult('Gagal mendeteksi kamera: ' + err + '. Gunakan input manual.', 'info');
+      showResult('Gagal deteksi kamera: ' + err, 'info');
       setStatus('offline', 'Camera error');
-      document.getElementById('cameraActions').classList.add('show');
     });
   }
 
@@ -346,24 +431,7 @@ input[type="text"]::placeholder { color: #64748b; }
     setStatus('waiting', 'Mengaktifkan kamera...');
     var config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
     var onSuccess = function(decodedText) {
-      if (isRedirecting) return;
-      isRedirecting = true;
-      try { scanner.stop(); } catch(e) {}
-      showResult('✅ ' + decodedText, 'success');
-      setStatus('active', 'Scan berhasil!');
-      document.getElementById('cameraActions').classList.remove('show');
-      var sec = 2;
-      document.getElementById('countdown').style.display = 'block';
-      document.getElementById('countdownSec').textContent = sec;
-      redirectTimer = setInterval(function() {
-        sec--;
-        if (sec <= 0) {
-          clearInterval(redirectTimer);
-          returnToApp(decodedText);
-        } else {
-          document.getElementById('countdownSec').textContent = sec;
-        }
-      }, 1000);
+      handleScan(decodedText);
     };
     var onFailure = function() {};
     try {
@@ -374,7 +442,7 @@ input[type="text"]::placeholder { color: #64748b; }
         scanner.start({ facingMode: 'environment' }, config, onSuccess, onFailure);
         setStatus('active', 'Kamera aktif — arahkan ke barcode');
       } catch(e2) {
-        showResult('Gagal mengakses kamera: ' + e2.message + '. Gunakan input manual.', 'error');
+        showResult('Gagal akses kamera: ' + e2.message, 'error');
         setStatus('offline', 'Camera failed');
       }
     }
@@ -383,63 +451,61 @@ input[type="text"]::placeholder { color: #64748b; }
   window.switchCamera = function() {
     if (isRedirecting || !scanner || cameras.length < 2) return;
     try { scanner.stop(); } catch(e) {}
-    var currentIdx = cameras.findIndex(function(c) { return c.id === currentCamId; });
-    var nextIdx = (currentIdx + 1) % cameras.length;
-    currentCamId = cameras[nextIdx].id;
-    setStatus('waiting', 'Ganti kamera...');
+    var idx = cameras.findIndex(function(c) { return c.id === currentCamId; });
+    idx = (idx + 1) % cameras.length;
+    currentCamId = cameras[idx].id;
     startCamera(currentCamId);
   };
 
-  window.restartScanner = function() {
+  window.restartCamera = function() {
     isRedirecting = false;
     cameraStarted = false;
     if (redirectTimer) { clearInterval(redirectTimer); redirectTimer = null; }
-    document.getElementById('scannerArea').style.display = 'none';
-    document.getElementById('startBox').style.display = 'block';
-    document.getElementById('btnStartCamera').textContent = '📷 Mulai Kamera';
-    document.getElementById('countdown').style.display = 'none';
-    document.getElementById('result').style.display = 'none';
+    if (scanner) { try { scanner.stop(); } catch(e) {} }
+    document.getElementById('reader').style.display = 'none';
+    document.getElementById('cameraStartBox').style.display = 'block';
     document.getElementById('cameraActions').classList.remove('show');
-    setStatus('waiting', 'Tekan tombol Mulai Kamera');
+    document.getElementById('btnStartCamera').textContent = '📷 Mulai Kamera';
+    document.getElementById('btnStartCamera').disabled = false;
+    document.getElementById('chromeFixBox').style.display = 'none';
+    document.getElementById('countdownBar').style.display = 'none';
+    document.getElementById('lastScan').style.display = 'none';
+    hideResult();
+    setStatus('waiting', 'Tekan Mulai Kamera');
   };
 
-  function returnToApp(code) {
-    if (!code || !callback) return;
-    var separator = callback.indexOf('?') >= 0 ? '&' : '?';
-    var url = callback + separator + 'code=' + encodeURIComponent(code);
-    window.location.href = url;
-  }
-
+  // ── MANUAL INPUT ──
   window.submitManual = function() {
     var input = document.getElementById('manualInput');
     var val = input ? input.value.trim() : '';
     if (!val) { input.focus(); return; }
-    returnToApp(val);
+    handleScan(val);
   };
 
+  // ── NAVIGATION ──
   window.goBack = function() {
-    if (isRedirecting) {
-      clearInterval(redirectTimer);
-      isRedirecting = false;
-    }
-    document.getElementById('countdown').style.display = 'none';
+    if (redirectTimer) { clearInterval(redirectTimer); isRedirecting = false; }
+    document.getElementById('countdownBar').style.display = 'none';
     if (callback) { window.location.href = callback; }
     else { window.history.back(); }
   };
 
-  function showResult(text, type) {
-    var el = document.getElementById('result');
-    el.className = '';
-    el.classList.add(type || 'info');
-    el.innerHTML = text;
-    el.style.display = 'block';
-  }
+  // ── INIT ──
+  function init() {
+    callback = getParam('callback');
+    userName = getParam('u') || '';
 
-  function setStatus(state, text) {
-    var dot = document.getElementById('statusDot');
-    var label = document.getElementById('statusText');
-    dot.className = 'dot' + (state === 'active' ? ' active' : '');
-    label.textContent = text || '';
+    var badge = document.getElementById('userBadge');
+    if (badge) badge.textContent = '👤 ' + (userName || '-');
+
+    if (!callback) {
+      showResult('⚠️ URL tidak valid. Buka scanner dari app Cycle Count Pro.', 'error');
+      setStatus('offline', 'Callback tidak ditemukan');
+      return;
+    }
+
+    setStatus('waiting', 'Pilih metode scan');
+    setTimeout(function() { document.getElementById('manualInput').focus(); }, 300);
   }
 
   if (document.readyState === 'loading') {
