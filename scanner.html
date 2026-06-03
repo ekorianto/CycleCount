@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>QR / Barcode Scanner — Cycle Count Pro GSSI</title>
+<style>
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; height: 100%; background: #0f172a; color: #f1f5f9;
+font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif; }
+header {
+  padding: 16px;
+  background: linear-gradient(135deg, #1e40af, #2563eb);
+  text-align: center;
+  position: relative;
+}
+header .logo { font-size: 28px; margin-bottom: 2px; }
+header h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -.01em; }
+header .sub { font-size: 12px; opacity: .75; margin-top: 2px; }
+.container { padding: 16px; max-width: 480px; margin: 0 auto; }
+.info-card {
+  background: rgba(255,255,255,.06);
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.info-card .icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+#reader {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto 12px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid rgba(37, 99, 235, .3);
+}
+#reader video { border-radius: 12px; }
+#result {
+  margin-top: 10px;
+  padding: 14px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 16px;
+  display: none;
+  word-break: break-all;
+  text-align: center;
+}
+#result.success { background: #059669; color: white; display: block; }
+#result.error { background: #dc2626; color: white; display: block; }
+#result.info { background: #2563eb; color: white; display: block; }
+#countdown {
+  display: none;
+  text-align: center;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #94a3b8;
+}
+.manual-section {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+.manual-section label {
+  display: block;
+  font-size: 12px;
+  opacity: .7;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+input[type="text"] {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 16px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 8px;
+  background: rgba(255,255,255,.06);
+  color: #f1f5f9;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .2s;
+}
+input[type="text"]:focus { border-color: #3b82f6; }
+input[type="text"]::placeholder { color: #64748b; }
+.btn {
+  display: block;
+  width: 100%;
+  padding: 13px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  margin-top: 8px;
+  transition: opacity .2s, transform .1s;
+}
+.btn:active { transform: scale(.97); }
+.btn-primary { background: #2563eb; color: white; }
+.btn-primary:hover { opacity: .92; }
+.btn-ghost {
+  background: transparent;
+  color: #94a3b8;
+  border: 1px solid rgba(255,255,255,.1);
+}
+.btn-ghost:hover { background: rgba(255,255,255,.05); color: #f1f5f9; }
+.camera-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.camera-actions .btn { width: auto; flex: 1; padding: 10px; font-size: 13px; }
+.status-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: #64748b;
+}
+.status-bar .dot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #dc2626;
+}
+.status-bar .dot.active { background: #22c55e; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">📋</div>
+  <h1>Scan Barcode / QR</h1>
+  <div class="sub">Cycle Count Pro — GSSI</div>
+</header>
+<div class="container">
+  <div class="info-card">
+    <span class="icon">📷</span>
+    <span>Arahkan kamera ke barcode atau QR. Hasil scan akan otomatis dikirim ke app Cycle Count.</span>
+  </div>
+  <div id="reader"></div>
+  <div id="result"></div>
+  <div id="countdown">↩️ Mengembalikan ke app dalam <span id="countdownSec">2</span> detik...</div>
+  <div class="camera-actions" id="cameraActions" style="display:none">
+    <button class="btn btn-ghost" onclick="restartScanner()">🔄 Mulai Kamera</button>
+    <button class="btn btn-ghost" onclick="switchCamera()">🔄 Ganti Kamera</button>
+  </div>
+  <div class="manual-section">
+    <label>Atau ketik kode manual</label>
+    <input type="text" id="manualInput" placeholder="Ketik kode material / barcode..." autocomplete="off" onkeydown="if(event.key==='Enter')submitManual()">
+    <button class="btn btn-primary" onclick="submitManual()">✅ Gunakan Kode Ini</button>
+  </div>
+  <button class="btn btn-ghost" onclick="goBack()">← Kembali ke App</button>
+  <div class="status-bar">
+    <span class="dot" id="statusDot"></span>
+    <span id="statusText">Menunggu kamera...</span>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+(function() {
+  'use strict';
+  var callback = null;
+  var scanner = null;
+  var currentCamId = null;
+  var cameras = [];
+  var isRedirecting = false;
+  var redirectTimer = null;
+
+  function getParam(key) {
+    var u = new URL(window.location.href);
+    return u.searchParams.get(key);
+  }
+
+  function init() {
+    callback = getParam('callback');
+    if (!callback) {
+      showResult('Callback URL tidak ditemukan. Buka scanner dari app Cycle Count Pro.', 'error');
+      setStatus('offline', 'Callback tidak ada');
+      document.getElementById('cameraActions').style.display = 'flex';
+      return;
+    }
+    setStatus('waiting', 'Menyiapkan kamera...');
+    startScanner();
+  }
+
+  function startScanner() {
+    if (!window.Html5Qrcode) {
+      showResult('Library scanner gagal dimuat. Coba refresh halaman.', 'error');
+      setStatus('offline', 'Library error');
+      document.getElementById('cameraActions').style.display = 'flex';
+      return;
+    }
+    try {
+      if (scanner) { try { scanner.stop(); } catch(e) {} }
+      scanner = new Html5Qrcode('reader');
+    } catch(e) {
+      showResult('Gagal inisialisasi scanner: ' + e.message, 'error');
+      setStatus('offline', 'Init error');
+      document.getElementById('cameraActions').style.display = 'flex';
+      return;
+    }
+    Html5Qrcode.getCameras().then(function(cams) {
+      cameras = cams || [];
+      if (cameras.length === 0) {
+        showResult('Tidak ada kamera ditemukan. Gunakan input manual di bawah.', 'info');
+        setStatus('offline', 'No camera');
+        document.getElementById('cameraActions').style.display = 'flex';
+        return;
+      }
+      document.getElementById('cameraActions').style.display = 'flex';
+      var backCam = cameras.find(function(c) { return /back|rear|environment/i.test(c.label); });
+      var targetCam = backCam || cameras[0];
+      currentCamId = targetCam.id;
+      startCamera(currentCamId);
+    }).catch(function(err) {
+      showResult('Akses kamera ditolak: ' + err + '. Gunakan input manual.', 'info');
+      setStatus('offline', 'Camera denied');
+      document.getElementById('cameraActions').style.display = 'flex';
+    });
+  }
+
+  function startCamera(camId) {
+    setStatus('waiting', 'Mengaktifkan kamera...');
+    var config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
+    var onSuccess = function(decodedText) {
+      if (isRedirecting) return;
+      isRedirecting = true;
+      try { scanner.stop(); } catch(e) {}
+      showResult('✅ ' + decodedText, 'success');
+      setStatus('active', 'Scan berhasil!');
+      document.getElementById('cameraActions').style.display = 'none';
+      var sec = 2;
+      document.getElementById('countdown').style.display = 'block';
+      document.getElementById('countdownSec').textContent = sec;
+      redirectTimer = setInterval(function() {
+        sec--;
+        if (sec <= 0) {
+          clearInterval(redirectTimer);
+          returnToApp(decodedText);
+        } else {
+          document.getElementById('countdownSec').textContent = sec;
+        }
+      }, 1000);
+    };
+    var onFailure = function() {};
+    try {
+      scanner.start({ deviceId: { exact: camId } }, config, onSuccess, onFailure);
+      setStatus('active', 'Kamera aktif — arahkan ke barcode');
+    } catch(e) {
+      try {
+        scanner.start({ facingMode: 'environment' }, config, onSuccess, onFailure);
+        setStatus('active', 'Kamera aktif — arahkan ke barcode');
+      } catch(e2) {
+        showResult('Gagal mengakses kamera: ' + e2.message + '. Gunakan input manual.', 'error');
+        setStatus('offline', 'Camera failed');
+      }
+    }
+  }
+
+  function switchCamera() {
+    if (isRedirecting || !scanner || cameras.length < 2) return;
+    try { scanner.stop(); } catch(e) {}
+    var currentIdx = cameras.findIndex(function(c) { return c.id === currentCamId; });
+    var nextIdx = (currentIdx + 1) % cameras.length;
+    currentCamId = cameras[nextIdx].id;
+    setStatus('waiting', 'Ganti kamera...');
+    startCamera(currentCamId);
+  }
+
+  function restartScanner() {
+    isRedirecting = false;
+    if (redirectTimer) { clearInterval(redirectTimer); redirectTimer = null; }
+    document.getElementById('countdown').style.display = 'none';
+    document.getElementById('result').style.display = 'none';
+    startScanner();
+  }
+
+  function returnToApp(code) {
+    if (!code || !callback) return;
+    var separator = callback.indexOf('?') >= 0 ? '&' : '?';
+    var url = callback + separator + 'code=' + encodeURIComponent(code);
+    window.location.href = url;
+  }
+
+  function submitManual() {
+    var input = document.getElementById('manualInput');
+    var val = input ? input.value.trim() : '';
+    if (!val) { input.focus(); return; }
+    returnToApp(val);
+  }
+
+  function goBack() {
+    if (isRedirecting) {
+      clearInterval(redirectTimer);
+      isRedirecting = false;
+    }
+    document.getElementById('countdown').style.display = 'none';
+    if (callback) { window.location.href = callback; }
+    else { window.history.back(); }
+  }
+
+  function showResult(text, type) {
+    var el = document.getElementById('result');
+    el.className = '';
+    el.classList.add(type || 'info');
+    el.textContent = text;
+    el.style.display = 'block';
+  }
+
+  function setStatus(state, text) {
+    var dot = document.getElementById('statusDot');
+    var label = document.getElementById('statusText');
+    dot.className = 'dot' + (state === 'active' ? ' active' : '');
+    label.textContent = text || '';
+  }
+
+  window.submitManual = submitManual;
+  window.goBack = goBack;
+  window.restartScanner = restartScanner;
+  window.switchCamera = switchCamera;
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+</body>
+</html>
