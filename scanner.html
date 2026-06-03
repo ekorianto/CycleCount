@@ -279,12 +279,20 @@ input[type="text"]::placeholder { color: #64748b; }
 
         if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
           showResult(
-            '⚠️ Akses kamera ditolak.<br><br>' +
-            'Coba:<br>' +
-            '1. Klik ikon 🔒 di address bar → set Camera = Allow<br>' +
-            '2. Refresh halaman ini<br>' +
-            '3. Klik "Mulai Kamera" lagi<br><br>' +
-            'Atau gunakan input manual di bawah.',
+            '⚠️ Akses kamera DIBLOKIR oleh browser.<br><br>' +
+            '📌 <strong>Cara memperbaiki (pilih salah satu):</strong><br><br>' +
+            '🔹 <strong>CARA 1 — Klik ikon 🔒 di address bar</strong><br>' +
+            '(samping kiri URL) → klik Site settings<br>' +
+            '→ cari Camera → ubah Block → <strong>Allow</strong><br>' +
+            '→ reload halaman ini<br><br>' +
+            '🔹 <strong>CARA 2 — Buka pengaturan Chrome</strong><br>' +
+            'Ketik di tab baru: <code>chrome://settings/content/camera</code><br>' +
+            '→ pastikan "Sites can ask for camera" ON<br>' +
+            '→ hapus github.io dari daftar Block<br><br>' +
+            '🔹 <strong>CARA 3 — Coba incognito / browser lain</strong><br>' +
+            'Buka URL ini di jendela Incognito (Ctrl+Shift+N)<br>' +
+            'atau pakai Edge / Firefox<br><br>' +
+            '✅ <strong>Atau gunakan input manual</strong> di bawah ↓',
             'error'
           );
         } else if (err.name === 'NotFoundError') {
