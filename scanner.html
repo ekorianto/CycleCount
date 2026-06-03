@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta http-equiv="Permissions-Policy" content="camera=(self)">
 <title>QR / Barcode Scanner — Cycle Count Pro GSSI</title>
 <style>
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -30,6 +31,37 @@ header .sub { font-size: 12px; opacity: .75; margin-top: 2px; }
   gap: 10px;
 }
 .info-card .icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+
+/* ── Start button (shown first) ── */
+.start-camera-box {
+  text-align: center;
+  padding: 40px 20px;
+  background: rgba(255,255,255,.04);
+  border-radius: 14px;
+  border: 2px dashed rgba(37,99,235,.3);
+  margin-bottom: 12px;
+}
+.start-camera-box .big-icon { font-size: 3.5rem; margin-bottom: 14px; }
+.start-camera-box p { color: #94a3b8; font-size: 14px; margin: 0 0 18px; line-height: 1.5; }
+.btn-start-camera {
+  display: inline-block;
+  padding: 14px 36px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: white;
+  font-size: 17px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform .15s, box-shadow .2s;
+  box-shadow: 0 4px 20px rgba(37,99,235,.35);
+}
+.btn-start-camera:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(37,99,235,.45); }
+.btn-start-camera:active { transform: scale(.96); }
+
+/* ── Scanner area (hidden until started) ── */
+.scanner-area { display: none; }
 #reader {
   width: 100%;
   max-width: 420px;
@@ -39,6 +71,7 @@ header .sub { font-size: 12px; opacity: .75; margin-top: 2px; }
   border: 2px solid rgba(37, 99, 235, .3);
 }
 #reader video { border-radius: 12px; }
+
 #result {
   margin-top: 10px;
   padding: 14px;
@@ -52,6 +85,7 @@ header .sub { font-size: 12px; opacity: .75; margin-top: 2px; }
 #result.success { background: #059669; color: white; display: block; }
 #result.error { background: #dc2626; color: white; display: block; }
 #result.info { background: #2563eb; color: white; display: block; }
+
 #countdown {
   display: none;
   text-align: center;
@@ -59,6 +93,16 @@ header .sub { font-size: 12px; opacity: .75; margin-top: 2px; }
   font-size: 13px;
   color: #94a3b8;
 }
+
+.camera-actions {
+  display: none;
+  gap: 8px;
+  margin-top: 8px;
+}
+.camera-actions.show { display: flex; }
+.camera-actions .btn { width: auto; flex: 1; padding: 10px; font-size: 13px; }
+
+/* ── Manual input ── */
 .manual-section {
   margin-top: 16px;
   padding-top: 14px;
@@ -86,6 +130,7 @@ input[type="text"] {
 }
 input[type="text"]:focus { border-color: #3b82f6; }
 input[type="text"]::placeholder { color: #64748b; }
+
 .btn {
   display: block;
   width: 100%;
@@ -108,12 +153,7 @@ input[type="text"]::placeholder { color: #64748b; }
   border: 1px solid rgba(255,255,255,.1);
 }
 .btn-ghost:hover { background: rgba(255,255,255,.05); color: #f1f5f9; }
-.camera-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-.camera-actions .btn { width: auto; flex: 1; padding: 10px; font-size: 13px; }
+
 .status-bar {
   display: flex;
   justify-content: center;
@@ -139,28 +179,48 @@ input[type="text"]::placeholder { color: #64748b; }
   <div class="sub">Cycle Count Pro — GSSI</div>
 </header>
 <div class="container">
+
   <div class="info-card">
     <span class="icon">📷</span>
     <span>Arahkan kamera ke barcode atau QR. Hasil scan akan otomatis dikirim ke app Cycle Count.</span>
   </div>
-  <div id="reader"></div>
-  <div id="result"></div>
-  <div id="countdown">↩️ Mengembalikan ke app dalam <span id="countdownSec">2</span> detik...</div>
-  <div class="camera-actions" id="cameraActions" style="display:none">
-    <button class="btn btn-ghost" onclick="restartScanner()">🔄 Mulai Kamera</button>
-    <button class="btn btn-ghost" onclick="switchCamera()">🔄 Ganti Kamera</button>
+
+  <!-- ===== START BUTTON (ditampilkan pertama) ===== -->
+  <div class="start-camera-box" id="startBox">
+    <div class="big-icon">📸</div>
+    <p>Klik tombol di bawah untuk mengaktifkan kamera.<br>
+    Browser akan meminta izin — pilih <strong>Izinkan</strong>.</p>
+    <button class="btn-start-camera" id="btnStartCamera" onclick="startCameraNow()">
+      📷 Mulai Kamera
+    </button>
   </div>
+
+  <!-- ===== SCANNER AREA (muncul setelah klik) ===== -->
+  <div class="scanner-area" id="scannerArea">
+    <div id="reader"></div>
+    <div id="result"></div>
+    <div id="countdown">↩️ Mengembalikan ke app dalam <span id="countdownSec">2</span> detik...</div>
+    <div class="camera-actions" id="cameraActions">
+      <button class="btn btn-ghost" onclick="restartScanner()">🔄 Mulai Ulang</button>
+      <button class="btn btn-ghost" onclick="switchCamera()">🔄 Ganti Kamera</button>
+    </div>
+  </div>
+
+  <!-- ===== MANUAL INPUT ===== -->
   <div class="manual-section">
     <label>Atau ketik kode manual</label>
     <input type="text" id="manualInput" placeholder="Ketik kode material / barcode..." autocomplete="off" onkeydown="if(event.key==='Enter')submitManual()">
     <button class="btn btn-primary" onclick="submitManual()">✅ Gunakan Kode Ini</button>
   </div>
+
   <button class="btn btn-ghost" onclick="goBack()">← Kembali ke App</button>
+
   <div class="status-bar">
     <span class="dot" id="statusDot"></span>
-    <span id="statusText">Menunggu kamera...</span>
+    <span id="statusText">Siap</span>
   </div>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 (function() {
@@ -171,6 +231,7 @@ input[type="text"]::placeholder { color: #64748b; }
   var cameras = [];
   var isRedirecting = false;
   var redirectTimer = null;
+  var cameraStarted = false;
 
   function getParam(key) {
     var u = new URL(window.location.href);
@@ -182,46 +243,94 @@ input[type="text"]::placeholder { color: #64748b; }
     if (!callback) {
       showResult('Callback URL tidak ditemukan. Buka scanner dari app Cycle Count Pro.', 'error');
       setStatus('offline', 'Callback tidak ada');
-      document.getElementById('cameraActions').style.display = 'flex';
+      document.getElementById('startBox').style.display = 'none';
       return;
     }
-    setStatus('waiting', 'Menyiapkan kamera...');
-    startScanner();
+    setStatus('waiting', 'Tekan tombol Mulai Kamera');
   }
 
-  function startScanner() {
+  // ── Dipanggil saat user klik "Mulai Kamera" (user gesture!) ──
+  window.startCameraNow = function() {
+    if (cameraStarted) return;
+    cameraStarted = true;
+
+    // Langkah 1: minta izin kamera EXPLISIT dengan getUserMedia
+    // (Browser butuh user gesture untuk ini — tombol klik menyediakannya)
+    setStatus('waiting', 'Meminta izin kamera...');
+    document.getElementById('btnStartCamera').textContent = '⏳ Meminta izin...';
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(function(stream) {
+        // Izin diberikan! Hentikan stream sementara, kita akan pakai html5-qrcode
+        stream.getTracks().forEach(function(t) { t.stop(); });
+
+        // Sembunyikan start box, tampilkan scanner area
+        document.getElementById('startBox').style.display = 'none';
+        document.getElementById('scannerArea').style.display = 'block';
+
+        // Inisialisasi scanner
+        initScanner();
+      })
+      .catch(function(err) {
+        // Izin ditolak
+        document.getElementById('btnStartCamera').textContent = '📷 Mulai Kamera';
+        cameraStarted = false;
+        setStatus('offline', 'Kamera ditolak');
+
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          showResult(
+            '⚠️ Akses kamera ditolak.<br><br>' +
+            'Coba:<br>' +
+            '1. Klik ikon 🔒 di address bar → set Camera = Allow<br>' +
+            '2. Refresh halaman ini<br>' +
+            '3. Klik "Mulai Kamera" lagi<br><br>' +
+            'Atau gunakan input manual di bawah.',
+            'error'
+          );
+        } else if (err.name === 'NotFoundError') {
+          showResult('Tidak ada kamera ditemukan. Gunakan input manual di bawah.', 'info');
+        } else {
+          showResult('Gagal akses kamera: ' + err.message + '. Gunakan input manual.', 'error');
+        }
+      });
+  };
+
+  // ── Inisialisasi scanner setelah izin diberikan ──
+  function initScanner() {
+    setStatus('waiting', 'Menyiapkan scanner...');
+
     if (!window.Html5Qrcode) {
       showResult('Library scanner gagal dimuat. Coba refresh halaman.', 'error');
       setStatus('offline', 'Library error');
-      document.getElementById('cameraActions').style.display = 'flex';
+      document.getElementById('cameraActions').classList.add('show');
       return;
     }
+
     try {
-      if (scanner) { try { scanner.stop(); } catch(e) {} }
       scanner = new Html5Qrcode('reader');
     } catch(e) {
       showResult('Gagal inisialisasi scanner: ' + e.message, 'error');
       setStatus('offline', 'Init error');
-      document.getElementById('cameraActions').style.display = 'flex';
+      document.getElementById('cameraActions').classList.add('show');
       return;
     }
+
     Html5Qrcode.getCameras().then(function(cams) {
       cameras = cams || [];
       if (cameras.length === 0) {
-        showResult('Tidak ada kamera ditemukan. Gunakan input manual di bawah.', 'info');
+        showResult('Tidak ada kamera ditemukan. Gunakan input manual.', 'info');
         setStatus('offline', 'No camera');
-        document.getElementById('cameraActions').style.display = 'flex';
         return;
       }
-      document.getElementById('cameraActions').style.display = 'flex';
+      document.getElementById('cameraActions').classList.add('show');
       var backCam = cameras.find(function(c) { return /back|rear|environment/i.test(c.label); });
       var targetCam = backCam || cameras[0];
       currentCamId = targetCam.id;
       startCamera(currentCamId);
     }).catch(function(err) {
-      showResult('Akses kamera ditolak: ' + err + '. Gunakan input manual.', 'info');
-      setStatus('offline', 'Camera denied');
-      document.getElementById('cameraActions').style.display = 'flex';
+      showResult('Gagal mendeteksi kamera: ' + err + '. Gunakan input manual.', 'info');
+      setStatus('offline', 'Camera error');
+      document.getElementById('cameraActions').classList.add('show');
     });
   }
 
@@ -234,7 +343,7 @@ input[type="text"]::placeholder { color: #64748b; }
       try { scanner.stop(); } catch(e) {}
       showResult('✅ ' + decodedText, 'success');
       setStatus('active', 'Scan berhasil!');
-      document.getElementById('cameraActions').style.display = 'none';
+      document.getElementById('cameraActions').classList.remove('show');
       var sec = 2;
       document.getElementById('countdown').style.display = 'block';
       document.getElementById('countdownSec').textContent = sec;
@@ -263,7 +372,7 @@ input[type="text"]::placeholder { color: #64748b; }
     }
   }
 
-  function switchCamera() {
+  window.switchCamera = function() {
     if (isRedirecting || !scanner || cameras.length < 2) return;
     try { scanner.stop(); } catch(e) {}
     var currentIdx = cameras.findIndex(function(c) { return c.id === currentCamId; });
@@ -271,15 +380,20 @@ input[type="text"]::placeholder { color: #64748b; }
     currentCamId = cameras[nextIdx].id;
     setStatus('waiting', 'Ganti kamera...');
     startCamera(currentCamId);
-  }
+  };
 
-  function restartScanner() {
+  window.restartScanner = function() {
     isRedirecting = false;
+    cameraStarted = false;
     if (redirectTimer) { clearInterval(redirectTimer); redirectTimer = null; }
+    document.getElementById('scannerArea').style.display = 'none';
+    document.getElementById('startBox').style.display = 'block';
+    document.getElementById('btnStartCamera').textContent = '📷 Mulai Kamera';
     document.getElementById('countdown').style.display = 'none';
     document.getElementById('result').style.display = 'none';
-    startScanner();
-  }
+    document.getElementById('cameraActions').classList.remove('show');
+    setStatus('waiting', 'Tekan tombol Mulai Kamera');
+  };
 
   function returnToApp(code) {
     if (!code || !callback) return;
@@ -288,14 +402,14 @@ input[type="text"]::placeholder { color: #64748b; }
     window.location.href = url;
   }
 
-  function submitManual() {
+  window.submitManual = function() {
     var input = document.getElementById('manualInput');
     var val = input ? input.value.trim() : '';
     if (!val) { input.focus(); return; }
     returnToApp(val);
-  }
+  };
 
-  function goBack() {
+  window.goBack = function() {
     if (isRedirecting) {
       clearInterval(redirectTimer);
       isRedirecting = false;
@@ -303,13 +417,13 @@ input[type="text"]::placeholder { color: #64748b; }
     document.getElementById('countdown').style.display = 'none';
     if (callback) { window.location.href = callback; }
     else { window.history.back(); }
-  }
+  };
 
   function showResult(text, type) {
     var el = document.getElementById('result');
     el.className = '';
     el.classList.add(type || 'info');
-    el.textContent = text;
+    el.innerHTML = text;
     el.style.display = 'block';
   }
 
@@ -319,11 +433,6 @@ input[type="text"]::placeholder { color: #64748b; }
     dot.className = 'dot' + (state === 'active' ? ' active' : '');
     label.textContent = text || '';
   }
-
-  window.submitManual = submitManual;
-  window.goBack = goBack;
-  window.restartScanner = restartScanner;
-  window.switchCamera = switchCamera;
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
