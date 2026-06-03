@@ -126,11 +126,6 @@ input[type="text"]::placeholder { color: #64748b; }
   display: flex; justify-content: center; align-items: center; gap: 8px;
   margin-top: 14px; font-size: 12px; color: #64748b;
 }
-.fb-status .dot {
-  display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #dc2626;
-}
-.fb-status .dot.active { background: #22c55e; }
-.fb-status .dot.waiting { background: #eab308; }
 
 .spinner {
   display: inline-block; width: 20px; height: 20px;
@@ -204,7 +199,7 @@ input[type="text"]::placeholder { color: #64748b; }
 
   <!-- Last scan indicator -->
   <div class="last-scan" id="lastScan">
-    <div class="label">✅ Terkirim ke Firebase — App akan mendeteksi otomatis</div>
+    <div class="label">✅ Barcode terdeteksi — Mengembalikan ke app...</div>
     <div class="code" id="lastScanCode">-</div>
     <div class="ts" id="lastScanTs">-</div>
   </div>
@@ -220,8 +215,7 @@ input[type="text"]::placeholder { color: #64748b; }
   <button class="btn btn-ghost" onclick="goBack()" style="margin-top:6px">← Kembali ke App</button>
 
   <div class="fb-status">
-    <span class="dot" id="fbDot"></span>
-    <span id="fbText">Siap — pilih metode scan</span>
+    <span id="statusText">Pilih metode scan di atas</span>
   </div>
 </div>
 
@@ -231,7 +225,6 @@ input[type="text"]::placeholder { color: #64748b; }
   'use strict';
 
   // ── CONFIG ──
-  var FIREBASE_DB = 'https://reservasi-efa36-default-rtdb.asia-southeast1.firebasedatabase.app';
   var callback = null;
   var userName = '';
   var scanner = null;
@@ -240,33 +233,11 @@ input[type="text"]::placeholder { color: #64748b; }
   var isRedirecting = false;
   var redirectTimer = null;
   var cameraStarted = false;
-  var scanCount = 0;
 
   // ── HELPERS ──
   function getParam(key) {
     var u = new URL(window.location.href);
     return u.searchParams.get(key);
-  }
-
-  function fbUrl(path) {
-    return FIREBASE_DB.replace(/\/$/, '') + '/' + path + '.json';
-  }
-
-  function writeToFirebase(code) {
-    if (!code || !userName) return;
-    var data = {
-      code: code,
-      user: userName,
-      ts: Date.now(),
-      date: new Date().toISOString(),
-      scanId: scanCount
-    };
-    // Write to Firebase under cycleCount/scans/{username}
-    return fetch(fbUrl('cycleCount/scans/' + encodeURIComponent(userName)), {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    }).then(function(r) { return r.json(); });
   }
 
   function returnToApp(code) {
@@ -287,13 +258,6 @@ input[type="text"]::placeholder { color: #64748b; }
   function hideResult() {
     document.getElementById('result').style.display = 'none';
     document.getElementById('result').className = '';
-  }
-
-  function setStatus(state, text) {
-    var dot = document.getElementById('fbDot');
-    var label = document.getElementById('fbText');
-    dot.className = 'dot' + (state === 'active' ? ' active' : state === 'waiting' ? ' waiting' : '');
-    label.textContent = text || '';
   }
 
   function showLastScan(code) {
@@ -337,39 +301,26 @@ input[type="text"]::placeholder { color: #64748b; }
   function handleScan(code) {
     if (isRedirecting || !code) return;
     isRedirecting = true;
-    scanCount++;
 
     hideResult();
-    setStatus('waiting', 'Mengirim ke Firebase...');
 
     // Stop kamera jika aktif
     if (scanner) {
       try { scanner.stop(); } catch(e) {}
     }
 
-    // Write ke Firebase
-    writeToFirebase(code).then(function() {
-      showResult('✅ ' + code, 'success');
-      showLastScan(code);
-      setStatus('active', 'Terkirim ke Firebase');
-      document.getElementById('cameraActions').classList.remove('show');
+    showResult('✅ ' + code, 'success');
+    showLastScan(code);
+    document.getElementById('cameraActions').classList.remove('show');
 
-      // Auto-redirect setelah 2 detik
-      startCountdown(code);
-    }).catch(function(err) {
-      // Firebase gagal — tetap lanjut via redirect
-      console.warn('Firebase write failed:', err);
-      showResult('✅ ' + code + ' (Firebase offline)', 'success');
-      showLastScan(code);
-      startCountdown(code);
-    });
+    // Auto-redirect setelah 2 detik
+    startCountdown(code);
   }
 
   // ── CAMERA ──
   window.startCameraNow = function() {
     if (cameraStarted) return;
     cameraStarted = true;
-    setStatus('waiting', 'Meminta izin kamera...');
     document.getElementById('btnStartCamera').textContent = '⏳ Meminta izin...';
     document.getElementById('btnStartCamera').disabled = true;
     document.getElementById('chromeFixBox').style.display = 'none';
@@ -385,7 +336,6 @@ input[type="text"]::placeholder { color: #64748b; }
         document.getElementById('btnStartCamera').textContent = '📷 Mulai Kamera';
         document.getElementById('btnStartCamera').disabled = false;
         cameraStarted = false;
-        setStatus('offline', 'Kamera diblokir');
 
         if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
           document.getElementById('chromeFixBox').style.display = 'block';
@@ -399,22 +349,18 @@ input[type="text"]::placeholder { color: #64748b; }
   };
 
   function initScanner() {
-    setStatus('waiting', 'Menyiapkan scanner...');
     if (!window.Html5Qrcode) {
       showResult('Library scanner gagal dimuat. Coba refresh.', 'error');
-      setStatus('offline', 'Library error');
       return;
     }
     try { scanner = new Html5Qrcode('reader'); } catch(e) {
       showResult('Gagal inisialisasi: ' + e.message, 'error');
-      setStatus('offline', 'Init error');
       return;
     }
     Html5Qrcode.getCameras().then(function(cams) {
       cameras = cams || [];
       if (cameras.length === 0) {
         showResult('Tidak ada kamera. Gunakan tab Manual.', 'info');
-        setStatus('offline', 'No camera');
         return;
       }
       document.getElementById('cameraActions').classList.add('show');
@@ -423,12 +369,10 @@ input[type="text"]::placeholder { color: #64748b; }
       startCamera(currentCamId);
     }).catch(function(err) {
       showResult('Gagal deteksi kamera: ' + err, 'info');
-      setStatus('offline', 'Camera error');
     });
   }
 
   function startCamera(camId) {
-    setStatus('waiting', 'Mengaktifkan kamera...');
     var config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
     var onSuccess = function(decodedText) {
       handleScan(decodedText);
@@ -436,14 +380,11 @@ input[type="text"]::placeholder { color: #64748b; }
     var onFailure = function() {};
     try {
       scanner.start({ deviceId: { exact: camId } }, config, onSuccess, onFailure);
-      setStatus('active', 'Kamera aktif — arahkan ke barcode');
     } catch(e) {
       try {
         scanner.start({ facingMode: 'environment' }, config, onSuccess, onFailure);
-        setStatus('active', 'Kamera aktif — arahkan ke barcode');
       } catch(e2) {
         showResult('Gagal akses kamera: ' + e2.message, 'error');
-        setStatus('offline', 'Camera failed');
       }
     }
   }
@@ -471,7 +412,6 @@ input[type="text"]::placeholder { color: #64748b; }
     document.getElementById('countdownBar').style.display = 'none';
     document.getElementById('lastScan').style.display = 'none';
     hideResult();
-    setStatus('waiting', 'Tekan Mulai Kamera');
   };
 
   // ── MANUAL INPUT ──
@@ -500,11 +440,9 @@ input[type="text"]::placeholder { color: #64748b; }
 
     if (!callback) {
       showResult('⚠️ URL tidak valid. Buka scanner dari app Cycle Count Pro.', 'error');
-      setStatus('offline', 'Callback tidak ditemukan');
       return;
     }
 
-    setStatus('waiting', 'Pilih metode scan');
     setTimeout(function() { document.getElementById('manualInput').focus(); }, 300);
   }
 
