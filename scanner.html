@@ -5,10 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QR Scanner</title>
   
-  <!-- Library QR Scanner -->
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <!-- ✅ Firebase SDK - LOAD DULU SEBELUM SCRIPT LAIN -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  
+  <!-- QR Scanner Library -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   
   <style>
     body {
@@ -84,24 +86,27 @@
 
   <script>
     // ═══════════════════════════════════════════════════════════
+    // FIREBASE CONFIG - GANTI DENGAN CONFIG KAMU
+    // ═══════════════════════════════════════════════════════════
+    const firebaseConfig = {
+      apiKey: "AIzaSyAc2WnRK1TG96y1GmegH_VyJI_X4Zi0jxE",
+      authDomain: "reservasi-efa36.firebaseapp.com",
+      databaseURL: "https://reservasi-efa36-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "reservasi-efa36",
+      storageBucket: "reservasi-efa36.appspot.com",
+      messagingSenderId: "123456789",
+      appId: "1:123456789:web:abcdef123456"
+    };
+
+    // ═══════════════════════════════════════════════════════════
     // GLOBAL VARIABLES
     // ═══════════════════════════════════════════════════════════
     let html5QrcodeScanner = null;
     let isScanning = false;
     let callbackUrl = '';
     let userName = '';
-
-    // Firebase config (SAMA dengan di app)
-  const firebaseConfig = {
-    apiKey: "AIzaSyAc2WnRK1TG96y1GmegH_VyJI_X4Zi0jxE",
-    authDomain: "reservasi-efa36.firebaseapp.com",
-    databaseURL: "https://reservasi-efa36-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "reservasi-efa36"
-  };
-
-     // Initialize Firebase
-  firebase.initializeApp(firebaseConfig);
-  console.log('✅ Firebase initialized in scanner');
+    let scanId = '';
+    let firebaseReady = false;
 
     // ═══════════════════════════════════════════════════════════
     // INITIALIZATION
@@ -109,16 +114,41 @@
     window.addEventListener('DOMContentLoaded', function() {
       console.log('🚀 Scanner page loaded');
       
-      // ✅ Ambil parameter dari URL
+      // ✅ Initialize Firebase FIRST
+      try {
+        if (!firebase.apps.length) {
+          firebase.initializeApp(firebaseConfig);
+          console.log('✅ Firebase initialized');
+        }
+        firebaseReady = true;
+      } catch(e) {
+        console.error('❌ Firebase init error:', e);
+        showStatus('❌ Firebase error: ' + e.message, 'error');
+        return;
+      }
+      
+      // ✅ Get URL parameters
       const urlParams = new URLSearchParams(window.location.search);
       callbackUrl = urlParams.get('callback') || '';
       userName = urlParams.get('u') || 'User';
       
+      // ✅ Extract scanId from callback URL
+      if (callbackUrl) {
+        const cbParams = new URLSearchParams(callbackUrl.split('?')[1] || '');
+        scanId = cbParams.get('scanId') || '';
+      }
+      
       console.log('📋 Callback URL:', callbackUrl);
       console.log('👤 User:', userName);
+      console.log('🔑 Scan ID:', scanId);
       
       if (!callbackUrl) {
         showStatus('❌ Callback URL tidak ditemukan! Silakan buka dari aplikasi.', 'error');
+        return;
+      }
+      
+      if (!scanId) {
+        showStatus('❌ Scan ID tidak ditemukan!', 'error');
         return;
       }
       
@@ -170,50 +200,77 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // ✅ SCAN SUCCESS HANDLER — INI YANG PENTING!
+    // ✅ SCAN SUCCESS HANDLER - FIREBASE UPDATE
     // ═══════════════════════════════════════════════════════════
     function onScanSuccess(decodedText, decodedResult) {
-  console.log('✅ SCAN SUCCESS:', decodedText);
-  
-  stopScanner();
-  
-  if (!callbackUrl) {
-    showStatus('❌ Callback URL tidak ditemukan!', 'error');
-    return;
-  }
-  
-  // ✅ Ambil scanId dari callback URL
-  const urlParams = new URLSearchParams(callbackUrl.split('?')[1] || '');
-  const scanId = urlParams.get('scanId');
-  
-  console.log('🔑 Scan ID:', scanId);
-  
-  if (scanId) {
-    // ✅ UPDATE FIREBASE dengan hasil scan
-    firebase.database().ref('scans/' + scanId).update({
-      code: decodedText,
-      status: 'done',
-      scannedAt: Date.now()
-    }).then(function() {
-      console.log('✅ Scan result saved to Firebase');
-      showStatus('✅ Scan berhasil: ' + decodedText + '<br>🔄 Mengalihkan...', 'success');
+      console.log('✅ SCAN SUCCESS:', decodedText);
       
-      setTimeout(function() {
-        window.top.location.href = callbackUrl;
-      }, 1000);
-    }).catch(function(err) {
-      console.error('❌ Firebase error:', err);
-      showStatus('❌ Gagal simpan ke Firebase: ' + err, 'error');
-    });
-  } else {
-    console.error('❌ No scanId found');
-    showStatus('❌ Scan ID tidak ditemukan!', 'error');
-  }
-}
+      // Stop scanner immediately
+      stopScanner();
+      
+      // ✅ Check Firebase ready
+      if (!firebaseReady) {
+        console.error('❌ Firebase not ready');
+        showStatus('❌ Firebase belum siap. Coba lagi.', 'error');
+        return;
+      }
+      
+      // ✅ Check scanId
+      if (!scanId) {
+        console.error('❌ No scanId');
+        showStatus('❌ Scan ID tidak ditemukan!', 'error');
+        return;
+      }
+      
+      showStatus('✅ Scan berhasil: ' + decodedText + '<br>💾 Menyimpan ke Firebase...', 'success');
+      
+      // ✅ Update Firebase
+      try {
+        const db = firebase.database();
+        const ref = db.ref('scans/' + scanId);
+        
+        console.log('📝 Updating Firebase at:', 'scans/' + scanId);
+        
+        ref.update({
+          code: decodedText,
+          status: 'done',
+          scannedAt: Date.now()
+        }).then(function() {
+          console.log('✅ Firebase update SUCCESS');
+          showStatus('✅ Scan berhasil: ' + decodedText + '<br>🔄 Mengalihkan kembali ke aplikasi...', 'success');
+          
+          // Redirect after 1 second
+          setTimeout(function() {
+            console.log('🚀 Redirecting to:', callbackUrl);
+            window.top.location.href = callbackUrl;
+          }, 1000);
+          
+        }).catch(function(error) {
+          console.error('❌ Firebase update FAILED:', error);
+          showStatus('❌ Gagal simpan ke Firebase: ' + error.message, 'error');
+          
+          // Fallback: redirect anyway with code in URL
+          setTimeout(function() {
+            const fallbackUrl = callbackUrl + '&code=' + encodeURIComponent(decodedText);
+            console.log('🚀 Fallback redirect to:', fallbackUrl);
+            window.top.location.href = fallbackUrl;
+          }, 2000);
+        });
+        
+      } catch(e) {
+        console.error('❌ Exception:', e);
+        showStatus('❌ Error: ' + e.message, 'error');
+        
+        // Fallback: redirect with code in URL
+        setTimeout(function() {
+          const fallbackUrl = callbackUrl + '&code=' + encodeURIComponent(decodedText);
+          window.top.location.href = fallbackUrl;
+        }, 2000);
+      }
+    }
 
     function onScanFailure(error) {
       // Ignore scan failures (normal saat tidak ada QR di frame)
-      // console.warn('Scan failure:', error);
     }
 
     // ═══════════════════════════════════════════════════════════
