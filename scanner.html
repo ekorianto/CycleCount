@@ -112,49 +112,70 @@
     // INITIALIZATION
     // ═══════════════════════════════════════════════════════════
     window.addEventListener('DOMContentLoaded', function() {
-      console.log('🚀 Scanner page loaded');
+  console.log('🚀 Scanner page loaded');
+  
+  // ✅ Initialize Firebase FIRST
+  try {
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+      console.log('✅ Firebase initialized');
+    }
+    firebaseReady = true;
+  } catch(e) {
+    console.error('❌ Firebase init error:', e);
+    showStatus('❌ Firebase error: ' + e.message, 'error');
+    return;
+  }
+  
+  // ✅ Get URL parameters
+  const urlParams = new URLSearchParams(window.location.search);
+  callbackUrl = urlParams.get('callback') || '';
+  userName = urlParams.get('u') || 'User';
+  
+  console.log('📋 Raw callback URL:', callbackUrl);
+  console.log('👤 User:', userName);
+  
+  // ✅ Extract scanId from callback URL (yang di-decode)
+  if (callbackUrl) {
+    try {
+      // Decode callback URL
+      const decodedCallback = decodeURIComponent(callbackUrl);
+      console.log('📋 Decoded callback URL:', decodedCallback);
       
-      // ✅ Initialize Firebase FIRST
-      try {
-        if (!firebase.apps.length) {
-          firebase.initializeApp(firebaseConfig);
-          console.log('✅ Firebase initialized');
-        }
-        firebaseReady = true;
-      } catch(e) {
-        console.error('❌ Firebase init error:', e);
-        showStatus('❌ Firebase error: ' + e.message, 'error');
-        return;
+      // Parse query string dari decoded callback
+      const callbackParams = new URLSearchParams(decodedCallback.split('?')[1] || '');
+      scanId = callbackParams.get('scanId') || '';
+      
+      console.log('🔑 Extracted scanId:', scanId);
+    } catch(e) {
+      console.error('❌ Failed to extract scanId:', e);
+      
+      // Fallback: coba cari scanId di raw callback
+      const match = callbackUrl.match(/scanId=([^&]+)/);
+      if (match) {
+        scanId = decodeURIComponent(match[1]);
+        console.log('🔑 Fallback scanId:', scanId);
       }
-      
-      // ✅ Get URL parameters
-      const urlParams = new URLSearchParams(window.location.search);
-      callbackUrl = urlParams.get('callback') || '';
-      userName = urlParams.get('u') || 'User';
-      
-      // ✅ Extract scanId from callback URL
-      if (callbackUrl) {
-        const cbParams = new URLSearchParams(callbackUrl.split('?')[1] || '');
-        scanId = cbParams.get('scanId') || '';
-      }
-      
-      console.log('📋 Callback URL:', callbackUrl);
-      console.log('👤 User:', userName);
-      console.log('🔑 Scan ID:', scanId);
-      
-      if (!callbackUrl) {
-        showStatus('❌ Callback URL tidak ditemukan! Silakan buka dari aplikasi.', 'error');
-        return;
-      }
-      
-      if (!scanId) {
-        showStatus('❌ Scan ID tidak ditemukan!', 'error');
-        return;
-      }
-      
-      showStatus('📷 Menyiapkan kamera...', 'info');
-      startScanner();
-    });
+    }
+  }
+  
+  // ✅ Validation
+  if (!callbackUrl) {
+    console.error('❌ No callback URL');
+    showStatus('❌ Callback URL tidak ditemukan! Silakan buka dari aplikasi.', 'error');
+    return;
+  }
+  
+  if (!scanId) {
+    console.error('❌ No scanId found in callback URL');
+    showStatus('❌ Scan ID tidak ditemukan!<br>Callback: ' + callbackUrl.substring(0, 100) + '...', 'error');
+    return;
+  }
+  
+  console.log('✅ All params OK, starting scanner...');
+  showStatus('📷 Menyiapkan kamera...', 'info');
+  startScanner();
+});
 
     // ═══════════════════════════════════════════════════════════
     // SCANNER FUNCTIONS
