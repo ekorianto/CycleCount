@@ -82,52 +82,52 @@
     // INITIALIZATION
     // ═══════════════════════════════════════════════════════════
     window.addEventListener('DOMContentLoaded', function() {
-      console.log('🚀 Scanner page loaded');
-      
+  console.log('🚀 Scanner page loaded');
+  
+  try {
+    // ✅ Get URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const callbackParam = urlParams.get('callback') || '';
+    userName = urlParams.get('u') || 'User';
+    
+    console.log('📋 Raw callback param:', callbackParam);
+    console.log('👤 User:', userName);
+    
+    // ✅ Decode URL-encoded callback (BUKAN base64!)
+    if (callbackParam) {
       try {
-        // ✅ Get URL parameters - callback adalah URL yang sudah di-encode
-        const urlParams = new URLSearchParams(window.location.search);
-        const callbackParam = urlParams.get('callback') || '';
-        userName = urlParams.get('u') || 'User';
+        // Callback adalah URL-encoded, bukan base64
+        callbackUrl = decodeURIComponent(callbackParam);
+        console.log('✅ Decoded callback URL:', callbackUrl);
         
-        console.log('📋 Raw callback param:', callbackParam);
-        console.log('👤 User:', userName);
-        
-        // ✅ Decode URL-encoded callback
-        if (callbackParam) {
-          try {
-            // Callback sudah URL-encoded, decode saja
-            callbackUrl = decodeURIComponent(callbackParam);
-            console.log('✅ Decoded callback URL:', callbackUrl);
-            
-            // Extract process type dari callback URL jika ada
-            try {
-              const callbackParams = new URLSearchParams(callbackUrl.split('?')[1] || '');
-              processType = callbackParams.get('t') || 'fg-wh';
-              console.log('✅ Process type:', processType);
-            } catch(e) {
-              console.warn('⚠️ Could not extract process type:', e);
-            }
-          } catch(e) {
-            console.error('❌ Failed to decode callback:', e);
-            showStatus('❌ Gagal decode callback: ' + e.message, 'error');
-            return;
-          }
+        // Extract process type dari callback URL jika ada
+        try {
+          const callbackParams = new URLSearchParams(callbackUrl.split('?')[1] || '');
+          processType = callbackParams.get('t') || 'fg-wh';
+          console.log('✅ Process type:', processType);
+        } catch(e) {
+          console.warn('⚠️ Could not extract process type:', e);
         }
-        
-        if (!callbackUrl) {
-          showStatus('❌ Callback URL tidak ditemukan! Silakan buka dari aplikasi.', 'error');
-          return;
-        }
-        
-        showStatus('📷 Menyiapkan kamera...', 'info');
-        startScanner();
-        
       } catch(e) {
-        console.error('❌ Initialization error:', e);
-        showStatus('❌ Error: ' + e.message, 'error');
+        console.error('❌ Failed to decode callback:', e);
+        showStatus('❌ Gagal decode callback: ' + e.message, 'error');
+        return;
       }
-    });
+    }
+    
+    if (!callbackUrl) {
+      showStatus('❌ Callback URL tidak ditemukan! Silakan buka dari aplikasi.', 'error');
+      return;
+    }
+    
+    showStatus('📷 Menyiapkan kamera...', 'info');
+    startScanner();
+    
+  } catch(e) {
+    console.error('❌ Initialization error:', e);
+    showStatus('❌ Error: ' + e.message, 'error');
+  }
+});
 
     // ═══════════════════════════════════════════════════════════
     // SCANNER FUNCTIONS
