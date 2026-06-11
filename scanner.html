@@ -245,35 +245,27 @@
     // ✅ SCAN SUCCESS - UPDATE FIREBASE
     // ═══════════════════════════════════════════════════════════
     function onScanSuccess(decodedText, decodedResult) {
-      console.log('✅ SCAN SUCCESS:', decodedText);
-      
-      stopScanner();
-      
-      if (!scanId || !fbDb) {
-        showStatus('❌ Scan ID atau Firebase tidak tersedia!', 'error');
-        return;
-      }
-      
-      showStatus('✅ Scan berhasil: ' + decodedText + '<br>💾 Menyimpan ke Firebase...', 'success');
-      
-      // ✅ Update Firebase dengan hasil scan
-      fbDb.ref('scans/' + scanId).update({
-        code: decodedText,
-        status: 'done',
-        scannedAt: Date.now()
-      }).then(function() {
-        console.log('✅ Firebase update SUCCESS');
-        showStatus('✅ Scan berhasil: ' + decodedText + '<br>🔄 Mengalihkan kembali...', 'success');
-        
-        setTimeout(function() {
-          window.top.location.href = callbackUrl;
-        }, 1000);
-        
-      }).catch(function(error) {
-        console.error('❌ Firebase update FAILED:', error);
-        showStatus('❌ Gagal simpan ke Firebase: ' + error.message, 'error');
-      });
-    }
+  console.log('✅ SCAN SUCCESS:', decodedText);
+  
+  stopScanner();
+  
+  if (!callbackUrl) {
+    showStatus('❌ Callback URL tidak ditemukan!', 'error');
+    return;
+  }
+  
+  // ✅ LANGSUNG tambahkan hasil scan ke callback URL
+  // Format: callbackUrl + '&code=HASIL_SCAN'
+  var separator = callbackUrl.indexOf('?') >= 0 ? '&' : '?';
+  var finalUrl = callbackUrl + separator + 'code=' + encodeURIComponent(decodedText);
+  
+  console.log('🚀 Redirecting to:', finalUrl);
+  showStatus('✅ Scan berhasil: ' + decodedText + '<br>🔄 Mengalihkan...', 'success');
+  
+  setTimeout(function() {
+    window.top.location.href = finalUrl;
+  }, 1000);
+}
 
     function onScanFailure(error) {
       // Ignore
