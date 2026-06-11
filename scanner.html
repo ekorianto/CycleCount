@@ -1,103 +1,205 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Scan Barcode — Cycle Count Pro GSSI</title>
-<style>
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { margin: 0; padding: 0; height: 100%; background: #0f172a; color: white;
-font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif; }
-header { padding: 14px 16px; background: linear-gradient(135deg, #1e40af, #2563eb); }
-header h1 { margin: 0; font-size: 17px; }
-header .sub { font-size: 12px; opacity: .85; margin-top: 2px; }
-#reader { width: 100%; max-width: 480px; margin: 12px auto; border-radius: 12px; overflow: hidden; }
-.container { padding: 16px; max-width: 480px; margin: 0 auto; }
-.info { background: rgba(255,255,255,.06); padding: 12px; border-radius: 10px; font-size: 13px; line-height: 1.5; margin-bottom: 10px; }
-.row { margin-bottom: 10px; }
-label { display: block; font-size: 12px; opacity: .8; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .03em; }
-input { width: 100%; padding: 12px; font-size: 16px; border: 1px solid rgba(255,255,255,.15); border-radius: 8px;
-background: rgba(255,255,255,.06); color: white; font-family: inherit; }
-.btn { display: block; width: 100%; padding: 13px; border-radius: 8px; border: none; cursor: pointer;
-font-size: 15px; font-weight: 600; font-family: inherit; margin-top: 8px; }
-.btn-primary { background: #2563eb; color: white; }
-.btn-ghost { background: transparent; color: white; border: 1px solid rgba(255,255,255,.2); }
-#result { margin-top: 12px; padding: 12px; background: #059669; border-radius: 10px; font-weight: 700; display: none; word-break: break-all; }
-.err { background: #dc2626 !important; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Scanner</title>
+  
+  <!-- Library QR Scanner -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f3f4f6;
+    }
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #1f2937;
+      font-size: 1.5rem;
+      margin-top: 0;
+    }
+    #reader {
+      width: 100%;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .status {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+    .status.success {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    .status.error {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    .status.info {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 15px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+    button:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+  </style>
 </head>
 <body>
-<header>
-<h1>📷 Scan Barcode</h1>
-<div class="sub">Cycle Count Pro — GSSI</div>
-</header>
-<div class="container">
-<div class="info">
-Arahkan kamera ke barcode material. Hasil scan otomatis kembali ke app Cycle Count.<br>
-Jika kamera tidak muncul, izinkan akses kamera di browser.
-</div>
-<div id="reader"></div>
-<div id="result"></div>
-<div class="row" style="margin-top:14px">
-<label>Atau ketik manual</label>
-<input type="text" id="manual" placeholder="ketik kode material">
-<button class="btn btn-primary" onclick="submitManual()">✅ Pakai kode ini</button>
-</div>
-<button class="btn btn-ghost" onclick="goBack()">← Kembali ke App</button>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-<script>
-function getParam(k) {
-var u = new URL(window.location.href);
-return u.searchParams.get(k);
-}
-var callback = getParam('callback');
-if (!callback) {
-document.getElementById('result').className = 'err';
-document.getElementById('result').style.display = 'block';
-document.getElementById('result').textContent = 'Callback URL tidak ada. Buka scanner dari app Cycle Count Pro.';
-}
-function returnToApp(code) {
-if (!callback) {
-document.getElementById('result').textContent = 'Code: ' + code + ' (no callback)';
-return;
-}
-var sep = callback.indexOf('?') >= 0 ? '&' : '?';
-window.location.href = callback + sep + 'code=' + encodeURIComponent(code);
-}
-function submitManual() {
-var v = document.getElementById('manual').value.trim();
-if (!v) return;
-returnToApp(v);
-}
-function goBack() {
-if (callback) window.location.href = callback;
-else window.history.back();
-}
-// === Init scanner ===
-var scanner = null;
-function startScanner() {
-if (!window.Html5Qrcode) return;
-scanner = new Html5Qrcode("reader");
-Html5Qrcode.getCameras().then(function(cams){
-var camId = cams && cams.length ? (cams.find(function(c){ return /back|rear|environment/i.test(c.label); }) || cams[cams.length-1]).id : null;
-var conf = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
-var cb = function(decodedText) {
-try { scanner.stop(); } catch(e){}
-var r = document.getElementById('result');
-r.textContent = '✅ ' + decodedText;
-r.style.display = 'block';
-setTimeout(function(){ returnToApp(decodedText); }, 350);
-};
-if (camId) scanner.start({ deviceId: { exact: camId } }, conf, cb, function(){});
-else scanner.start({ facingMode: 'environment' }, conf, cb, function(){});
-}).catch(function(e){
-var r = document.getElementById('result');
-r.className = 'err'; r.style.display = 'block';
-r.textContent = 'Tidak bisa akses kamera: ' + e;
-});
-}
-startScanner();
-</script>
+  <div class="container">
+    <h1>📷 QR Code Scanner</h1>
+    <div id="reader"></div>
+    <div id="status" class="status info">Menunggu scan...</div>
+    <button id="stopBtn" onclick="stopScanner()" disabled>Stop Scanner</button>
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════
+    // GLOBAL VARIABLES
+    // ═══════════════════════════════════════════════════════════
+    let html5QrcodeScanner = null;
+    let isScanning = false;
+    let callbackUrl = '';
+    let userName = '';
+
+    // ═══════════════════════════════════════════════════════════
+    // INITIALIZATION
+    // ═══════════════════════════════════════════════════════════
+    window.addEventListener('DOMContentLoaded', function() {
+      console.log('🚀 Scanner page loaded');
+      
+      // ✅ Ambil parameter dari URL
+      const urlParams = new URLSearchParams(window.location.search);
+      callbackUrl = urlParams.get('callback') || '';
+      userName = urlParams.get('u') || 'User';
+      
+      console.log('📋 Callback URL:', callbackUrl);
+      console.log('👤 User:', userName);
+      
+      if (!callbackUrl) {
+        showStatus('❌ Callback URL tidak ditemukan! Silakan buka dari aplikasi.', 'error');
+        return;
+      }
+      
+      showStatus('📷 Menyiapkan kamera...', 'info');
+      startScanner();
+    });
+
+    // ═══════════════════════════════════════════════════════════
+    // SCANNER FUNCTIONS
+    // ═══════════════════════════════════════════════════════════
+    function startScanner() {
+      if (isScanning) return;
+      
+      html5QrcodeScanner = new Html5Qrcode("reader");
+      
+      const config = { 
+        fps: 10, 
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0
+      };
+      
+      html5QrcodeScanner.start(
+        { facingMode: "environment" }, 
+        config,
+        onScanSuccess,
+        onScanFailure
+      ).then(() => {
+        isScanning = true;
+        document.getElementById('stopBtn').disabled = false;
+        showStatus('✅ Kamera aktif. Arahkan ke QR Code.', 'success');
+        console.log('✅ Scanner started');
+      }).catch(err => {
+        console.error('❌ Failed to start scanner:', err);
+        showStatus('❌ Gagal mengakses kamera: ' + err, 'error');
+      });
+    }
+
+    function stopScanner() {
+      if (!isScanning || !html5QrcodeScanner) return;
+      
+      html5QrcodeScanner.stop().then(() => {
+        isScanning = false;
+        document.getElementById('stopBtn').disabled = true;
+        showStatus('⏸️ Scanner dihentikan', 'info');
+        console.log('⏸️ Scanner stopped');
+      }).catch(err => {
+        console.error('❌ Failed to stop scanner:', err);
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // ✅ SCAN SUCCESS HANDLER — INI YANG PENTING!
+    // ═══════════════════════════════════════════════════════════
+    function onScanSuccess(decodedText, decodedResult) {
+      console.log('✅ SCAN SUCCESS:', decodedText);
+      console.log('📦 Result object:', decodedResult);
+      
+      // Stop scanner agar tidak scan berulang
+      stopScanner();
+      
+      // ✅ Cek apakah callback URL ada
+      if (!callbackUrl) {
+        showStatus('❌ Callback URL tidak ditemukan!', 'error');
+        return;
+      }
+      
+      // ✅ Tambahkan hasil scan ke callback URL
+      // Format: callbackUrl + &code=HASIL_SCAN
+      const finalUrl = callbackUrl + '&code=' + encodeURIComponent(decodedText);
+      
+      console.log('🚀 Redirecting to:', finalUrl);
+      
+      showStatus('✅ Scan berhasil: ' + decodedText + '<br>🔄 Mengalihkan kembali ke aplikasi...', 'success');
+      
+      // ✅ Redirect setelah 1 detik (kasih waktu user lihat hasil)
+      setTimeout(function() {
+        window.top.location.href = finalUrl;
+      }, 1000);
+    }
+
+    function onScanFailure(error) {
+      // Ignore scan failures (normal saat tidak ada QR di frame)
+      // console.warn('Scan failure:', error);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // HELPER FUNCTIONS
+    // ═══════════════════════════════════════════════════════════
+    function showStatus(message, type) {
+      const statusEl = document.getElementById('status');
+      if (statusEl) {
+        statusEl.innerHTML = message;
+        statusEl.className = 'status ' + (type || 'info');
+      }
+    }
+  </script>
 </body>
 </html>
