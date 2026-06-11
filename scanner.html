@@ -7,6 +7,8 @@
   
   <!-- Library QR Scanner -->
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   
   <style>
     body {
@@ -88,6 +90,18 @@
     let isScanning = false;
     let callbackUrl = '';
     let userName = '';
+
+    // Firebase config (SAMA dengan di app)
+  const firebaseConfig = {
+    apiKey: "AIzaSyAc2WnRK1TG96y1GmegH_VyJI_X4Zi0jxE",
+    authDomain: "reservasi-efa36.firebaseapp.com",
+    databaseURL: "https://reservasi-efa36-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "reservasi-efa36"
+  };
+
+     // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  console.log('✅ Firebase initialized in scanner');
 
     // ═══════════════════════════════════════════════════════════
     // INITIALIZATION
