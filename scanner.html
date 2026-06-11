@@ -58,11 +58,21 @@
     }
     button:hover { background: #1d4ed8; }
     button:disabled { background: #9ca3af; cursor: not-allowed; }
+    .info-box {
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 15px;
+      font-size: 0.85rem;
+      color: #0369a1;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>📷 QR Code Scanner</h1>
+    <div id="infoBox" class="info-box" style="display:none"></div>
     <div id="reader"></div>
     <div id="status" class="status info">Menyiapkan...</div>
     <button id="stopBtn" onclick="stopScanner()" disabled>Stop Scanner</button>
@@ -79,55 +89,115 @@
     let processType = 'fg-wh';
 
     // ═══════════════════════════════════════════════════════════
-    // INITIALIZATION
+    // BASE64 DECODE HELPER
     // ═══════════════════════════════════════════════════════════
-    window.addEventListener('DOMContentLoaded', function() {
-  console.log('🚀 Scanner page loaded');
-  
-  try {
-    // ✅ Get URL parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    const callbackParam = urlParams.get('callback') || '';
-    userName = urlParams.get('u') || 'User';
-    
-    console.log('📋 Raw callback param:', callbackParam);
-    console.log('👤 User:', userName);
-    
-    // ✅ Decode URL-encoded callback (BUKAN base64!)
-    if (callbackParam) {
+    function b64Dec(str) {
+      if (!str) return null;
       try {
-        // Callback adalah URL-encoded, bukan base64
-        callbackUrl = decodeURIComponent(callbackParam);
-        console.log('✅ Decoded callback URL:', callbackUrl);
-        
-        // Extract process type dari callback URL jika ada
-        try {
-          const callbackParams = new URLSearchParams(callbackUrl.split('?')[1] || '');
-          processType = callbackParams.get('t') || 'fg-wh';
-          console.log('✅ Process type:', processType);
-        } catch(e) {
-          console.warn('⚠️ Could not extract process type:', e);
-        }
-      } catch(e) {
-        console.error('❌ Failed to decode callback:', e);
-        showStatus('❌ Gagal decode callback: ' + e.message, 'error');
-        return;
+        var b64 = str.replace(/-/g,'+').replace(/_/g,'/');
+        while (b64.length % 4) b64 += '=';
+        return JSON.parse(decodeURIComponent(escape(atob(b64))));
+      } catch(e) { 
+        console.error('b64Dec error:', e);
+        return null; 
       }
     }
-    
-    if (!callbackUrl) {
-      showStatus('❌ Callback URL tidak ditemukan! Silakan buka dari aplikasi.', 'error');
-      return;
-    }
-    
-    showStatus('📷 Menyiapkan kamera...', 'info');
-    startScanner();
-    
-  } catch(e) {
-    console.error('❌ Initialization error:', e);
-    showStatus('❌ Error: ' + e.message, 'error');
-  }
-});
+
+    // ═══════════════════════════════════════════════════════════
+    // INITIALIZATION - FIXED VERSION
+    // ═══════════════════════════════════════════════════════════
+    window.addEventListener('DOMContentLoaded', function() {
+      console.log('🚀 Scanner page loaded');
+      
+      try {
+        // ✅ Get URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const callbackParam = urlParams.get('callback') || '';
+        userName = urlParams.get('u') || 'User';
+        
+        console.log('📋 Raw callback param:', callbackParam);
+        console.log('👤 User:', userName);
+        
+        // ✅ Decode callback parameter - bisa base64 ATAU URL-encoded
+        if (callbackParam) {
+          try {
+            // Coba decode sebagai base64 JSON dulu (format yang dikirim app)
+            let decodedData = null;
+            
+            // Cek apakah ini base64 encoded JSON
+            if (callbackParam.match(/^[A-Za-z0-9_-]+={0,2}$/)) {
+              // Ini kemungkinan base64
+              decodedData = b64Dec(callbackParam);
+              console.log('📦 Decoded as base64:', decodedData);
+            }
+            
+            // Jika base64 gagal atau tidak valid, coba sebagai URL-encoded string
+            if (!decodedData || !decodedData.url) {
+              try {
+                const decodedUrl = decodeURIComponent(callbackParam);
+                console.log('📦 Decoded as URL:', decodedUrl);
+                
+                // Parse URL untuk extract parameter
+                const urlObj = new URL(decodedUrl);
+                decodedData = {
+                  url: decodedUrl.split('?')[0],
+                  params: {}
+                };
+                
+                // Extract query parameters
+                urlObj.searchParams.forEach((value, key) => {
+                  decodedData.params[key] = value;
+                });
+                
+                // Reconstruct full callback URL
+                decodedData.callbackUrl = decodedUrl;
+              } catch(e2) {
+                console.error('❌ Failed to decode as URL:', e2);
+              }
+            }
+            
+            if (decodedData) {
+              // Extract data
+              if (decodedData.url) {
+                callbackUrl = decodedData.url;
+              } else if (decodedData.callbackUrl) {
+                callbackUrl = decodedData.callbackUrl;
+              }
+              
+              if (decodedData.processType) {
+                processType = decodedData.processType;
+              } else if (decodedData.params && decodedData.params.t) {
+                processType = decodedData.params.t;
+              }
+              
+              // Show info
+              const infoBox = document.getElementById('infoBox');
+              infoBox.style.display = 'block';
+              infoBox.innerHTML = '👤 User: <strong>' + userName + '</strong><br>📋 Proses: <strong>' + processType + '</strong>';
+              
+              console.log('✅ Callback URL:', callbackUrl);
+              console.log('✅ Process type:', processType);
+            }
+          } catch(e) {
+            console.error('❌ Failed to decode callback:', e);
+            showStatus('❌ Gagal decode callback: ' + e.message, 'error');
+            return;
+          }
+        }
+        
+        if (!callbackUrl) {
+          showStatus('❌ Callback URL tidak ditemukan! Silakan buka dari aplikasi.', 'error');
+          return;
+        }
+        
+        showStatus('📷 Menyiapkan kamera...', 'info');
+        startScanner();
+        
+      } catch(e) {
+        console.error('❌ Initialization error:', e);
+        showStatus('❌ Error: ' + e.message, 'error');
+      }
+    });
 
     // ═══════════════════════════════════════════════════════════
     // SCANNER FUNCTIONS
@@ -174,27 +244,28 @@
     // ═══════════════════════════════════════════════════════════
     // ✅ SCAN SUCCESS - LANGSUNG REDIRECT DENGAN HASIL
     // ═══════════════════════════════════════════════════════════
-   function onScanSuccess(decodedText, decodedResult) {
-  console.log('✅ SCAN SUCCESS:', decodedText);
-  
-  stopScanner();
-  
-  if (!callbackUrl) {
-    showStatus('❌ Callback URL tidak ditemukan!', 'error');
-    return;
-  }
-  
-  // ✅ Tambahkan hasil scan ke callback URL
-  const separator = callbackUrl.indexOf('?') >= 0 ? '&' : '?';
-  const finalUrl = callbackUrl + separator + 'code=' + encodeURIComponent(decodedText);
-  
-  console.log('🚀 Redirecting to:', finalUrl);
-  showStatus('✅ Scan berhasil: ' + decodedText + '<br>🔄 Mengalihkan...', 'success');
-  
-  setTimeout(function() {
-    window.top.location.href = finalUrl;
-  }, 1000);
-}
+    function onScanSuccess(decodedText, decodedResult) {
+      console.log('✅ SCAN SUCCESS:', decodedText);
+      
+      stopScanner();
+      
+      if (!callbackUrl) {
+        showStatus('❌ Callback URL tidak ditemukan!', 'error');
+        return;
+      }
+      
+      // ✅ Tambahkan hasil scan ke callback URL
+      const separator = callbackUrl.indexOf('?') >= 0 ? '&' : '?';
+      const finalUrl = callbackUrl + separator + 'code=' + encodeURIComponent(decodedText);
+      
+      console.log('🚀 Redirecting to:', finalUrl);
+      showStatus('✅ Scan berhasil: ' + decodedText + '<br>🔄 Mengalihkan...', 'success');
+      
+      setTimeout(function() {
+        window.top.location.href = finalUrl;
+      }, 1000);
+    }
+
     function onScanFailure(error) {
       // Ignore scan failures (normal saat tidak ada QR di frame)
     }
