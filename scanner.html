@@ -1,285 +1,159 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QR Code Scanner</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📷</text></svg>">
-  
-  <!-- QR Scanner Library -->
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      margin: 0;
-      padding: 20px;
-      background: #f3f4f6;
-      min-height: 100vh;
-    }
-    .container {
-      max-width: 500px;
-      margin: 0 auto;
-      background: white;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    h1 { color: #1f2937; font-size: 1.5rem; margin: 0 0 20px 0; }
-    #reader {
-      width: 100%;
-      border: 2px solid #e5e7eb;
-      border-radius: 8px;
-      overflow: hidden;
-      background: #000;
-    }
-    #reader video { width: 100% !important; border-radius: 8px; }
-    .status {
-      margin-top: 15px;
-      padding: 12px;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      word-break: break-all;
-    }
-    .status.success { background: #d1fae5; color: #065f46; }
-    .status.error { background: #fee2e2; color: #991b1b; }
-    .status.info { background: #dbeafe; color: #1e40af; }
-    button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 15px;
-      background: #2563eb;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 1rem;
-      cursor: pointer;
-    }
-    button:hover { background: #1d4ed8; }
-    button:disabled { background: #9ca3af; cursor: not-allowed; }
-    .info-box {
-      background: #f0f9ff;
-      border: 1px solid #bae6fd;
-      border-radius: 8px;
-      padding: 10px;
-      margin-bottom: 15px;
-      font-size: 0.85rem;
-      color: #0369a1;
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>QR Scanner – Serah Terima FG & GR</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0f172a;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+       min-height:100vh;display:flex;flex-direction:column;align-items:center}
+  #header{width:100%;padding:14px 16px;background:#1e293b;display:flex;align-items:center;
+           gap:10px;font-size:16px;font-weight:600}
+  #header svg{width:22px;height:22px;fill:#6366f1}
+  #reader{width:100%;max-width:480px}
+  #reader video{border-radius:0!important}
+  #reader__scan_region{border:none!important}
+  #status{width:100%;max-width:480px;padding:12px 16px;font-size:14px;
+          min-height:48px;text-align:center;color:#94a3b8;line-height:1.4}
+  #status.ok{color:#4ade80;font-size:16px;font-weight:600}
+  #status.err{color:#f87171}
+  #result-box{display:none;width:100%;max-width:480px;padding:14px 16px;
+              background:#1e293b;border-top:1px solid #334155}
+  #result-val{font-size:20px;font-weight:700;word-break:break-all;color:#818cf8;margin-bottom:8px}
+  #result-hint{font-size:12px;color:#64748b}
+  #btn-retry{margin-top:16px;padding:12px 28px;background:#6366f1;color:#fff;border:none;
+             border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;width:calc(100% - 32px);
+             max-width:448px;display:none}
+  #btn-retry:active{opacity:.8}
+  #viewfinder-wrap{position:relative}
+  .corner{position:absolute;width:26px;height:26px;pointer-events:none}
+  .corner.tl{top:20px;left:20px;border-top:4px solid #6366f1;border-left:4px solid #6366f1;border-radius:4px 0 0 0}
+  .corner.tr{top:20px;right:20px;border-top:4px solid #6366f1;border-right:4px solid #6366f1;border-radius:0 4px 0 0}
+  .corner.bl{bottom:20px;left:20px;border-bottom:4px solid #6366f1;border-left:4px solid #6366f1;border-radius:0 0 0 4px}
+  .corner.br{bottom:20px;right:20px;border-bottom:4px solid #6366f1;border-right:4px solid #6366f1;border-radius:0 0 4px 0}
+</style>
 </head>
 <body>
-  <div class="container">
-    <h1>📷 QR Code Scanner</h1>
-    <div id="infoBox" class="info-box" style="display:none"></div>
-    <div id="reader"></div>
-    <div id="status" class="status info">Menyiapkan...</div>
-    <button id="stopBtn" onclick="stopScanner()" disabled>Stop Scanner</button>
-  </div>
 
-  <script>
-    // ═══════════════════════════════════════════════════════════
-    // GLOBAL VARIABLES
-    // ═══════════════════════════════════════════════════════════
-    let html5QrcodeScanner = null;
-    let isScanning = false;
-    let callbackUrl = '';
-    let userName = '';
-    let processType = 'fg-wh';
+<div id="header">
+  <svg viewBox="0 0 24 24"><path d="M3 11V3h8v8H3zm2-6v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm13-2h2v2h-2v-2zm-4 0h2v2h-2v-2zm4 4h2v2h-2v-2zm-4 4h2v2h-2v-2zm4 0h2v2h-2v-2zm-4-8h2v6h-2v-6z"/></svg>
+  QR Scanner – Serah Terima FG & GR
+</div>
 
-    // ═══════════════════════════════════════════════════════════
-    // BASE64 DECODE HELPER
-    // ═══════════════════════════════════════════════════════════
-    function b64Dec(str) {
-      if (!str) return null;
-      try {
-        var b64 = str.replace(/-/g,'+').replace(/_/g,'/');
-        while (b64.length % 4) b64 += '=';
-        return JSON.parse(decodeURIComponent(escape(atob(b64))));
-      } catch(e) { 
-        console.error('b64Dec error:', e);
-        return null; 
-      }
-    }
+<div id="viewfinder-wrap" style="width:100%;max-width:480px;position:relative">
+  <div id="reader"></div>
+  <div class="corner tl"></div>
+  <div class="corner tr"></div>
+  <div class="corner bl"></div>
+  <div class="corner br"></div>
+</div>
 
-    // ═══════════════════════════════════════════════════════════
-    // INITIALIZATION - FIXED VERSION
-    // ═══════════════════════════════════════════════════════════
-    window.addEventListener('DOMContentLoaded', function() {
-      console.log('🚀 Scanner page loaded');
-      
-      try {
-        // ✅ Get URL parameters
-        const urlParams = new URLSearchParams(window.location.search);
-        const callbackParam = urlParams.get('callback') || '';
-        userName = urlParams.get('u') || 'User';
-        
-        console.log('📋 Raw callback param:', callbackParam);
-        console.log('👤 User:', userName);
-        
-        // ✅ Decode callback parameter - bisa base64 ATAU URL-encoded
-        if (callbackParam) {
-          try {
-            // Coba decode sebagai base64 JSON dulu (format yang dikirim app)
-            let decodedData = null;
-            
-            // Cek apakah ini base64 encoded JSON
-            if (callbackParam.match(/^[A-Za-z0-9_-]+={0,2}$/)) {
-              // Ini kemungkinan base64
-              decodedData = b64Dec(callbackParam);
-              console.log('📦 Decoded as base64:', decodedData);
-            }
-            
-            // Jika base64 gagal atau tidak valid, coba sebagai URL-encoded string
-            if (!decodedData || !decodedData.url) {
-              try {
-                const decodedUrl = decodeURIComponent(callbackParam);
-                console.log('📦 Decoded as URL:', decodedUrl);
-                
-                // Parse URL untuk extract parameter
-                const urlObj = new URL(decodedUrl);
-                decodedData = {
-                  url: decodedUrl.split('?')[0],
-                  params: {}
-                };
-                
-                // Extract query parameters
-                urlObj.searchParams.forEach((value, key) => {
-                  decodedData.params[key] = value;
-                });
-                
-                // Reconstruct full callback URL
-                decodedData.callbackUrl = decodedUrl;
-              } catch(e2) {
-                console.error('❌ Failed to decode as URL:', e2);
-              }
-            }
-            
-            if (decodedData) {
-              // Extract data
-              if (decodedData.url) {
-                callbackUrl = decodedData.url;
-              } else if (decodedData.callbackUrl) {
-                callbackUrl = decodedData.callbackUrl;
-              }
-              
-              if (decodedData.processType) {
-                processType = decodedData.processType;
-              } else if (decodedData.params && decodedData.params.t) {
-                processType = decodedData.params.t;
-              }
-              
-              // Show info
-              const infoBox = document.getElementById('infoBox');
-              infoBox.style.display = 'block';
-              infoBox.innerHTML = '👤 User: <strong>' + userName + '</strong><br>📋 Proses: <strong>' + processType + '</strong>';
-              
-              console.log('✅ Callback URL:', callbackUrl);
-              console.log('✅ Process type:', processType);
-            }
-          } catch(e) {
-            console.error('❌ Failed to decode callback:', e);
-            showStatus('❌ Gagal decode callback: ' + e.message, 'error');
-            return;
-          }
-        }
-        
-        if (!callbackUrl) {
-          showStatus('❌ Callback URL tidak ditemukan! Silakan buka dari aplikasi.', 'error');
-          return;
-        }
-        
-        showStatus('📷 Menyiapkan kamera...', 'info');
-        startScanner();
-        
-      } catch(e) {
-        console.error('❌ Initialization error:', e);
-        showStatus('❌ Error: ' + e.message, 'error');
-      }
+<div id="status">Memulai kamera...</div>
+<div id="result-box">
+  <div id="result-val"></div>
+  <div id="result-hint">Mengirim ke aplikasi...</div>
+</div>
+<button id="btn-retry" onclick="startScanner()">Scan Lagi</button>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+// ── Config ───────────────────────────────────────────────────
+// Firebase RTDB REST endpoint — no SDK needed, plain fetch()
+// Node: stpro/qr_scan — GAS app listens here and fills the field
+const FB_URL = 'https://reservasi-efa36-default-rtdb.asia-southeast1.firebasedatabase.app/stpro/qr_scan.json';
+
+// Target field ID dari URL param (dikirim saat openQR)
+const QR_TARGET = (function() {
+  var m = location.search.match(/[?&]tgt=([^&]+)/);
+  return m ? decodeURIComponent(m[1]) : '';
+})();
+
+var scanner = null;
+var _done   = false;
+
+function setStatus(msg, cls) {
+  var el = document.getElementById('status');
+  el.textContent = msg;
+  el.className   = cls || '';
+}
+
+function startScanner() {
+  _done = false;
+  document.getElementById('result-box').style.display = 'none';
+  document.getElementById('btn-retry').style.display  = 'none';
+  setStatus('Memulai kamera...', '');
+
+  if (scanner) {
+    scanner.clear().catch(function(){}).finally(function(){ _initScanner(); });
+  } else {
+    _initScanner();
+  }
+}
+
+function _initScanner() {
+  scanner = new Html5Qrcode('reader');
+  scanner.start(
+    { facingMode: 'environment' },
+    { fps: 12, qrbox: { width: 240, height: 240 }, aspectRatio: 1.0 },
+    onScanSuccess,
+    function() { /* ignore frequent decode errors */ }
+  ).then(function() {
+    setStatus('Arahkan kamera ke QR code / barcode', '');
+  }).catch(function(err) {
+    setStatus('Kamera tidak bisa diakses: ' + (err.message || err), 'err');
+    document.getElementById('btn-retry').style.display = 'block';
+  });
+}
+
+async function onScanSuccess(code) {
+  if (_done) return;
+  _done = true;
+
+  // vibrate on success
+  if (navigator.vibrate) navigator.vibrate([80, 60, 80]);
+
+  // Stop scanner
+  try { await scanner.stop(); } catch(e) {}
+
+  setStatus('✓ Kode ditemukan!', 'ok');
+
+  var rb  = document.getElementById('result-box');
+  var rv  = document.getElementById('result-val');
+  var rh  = document.getElementById('result-hint');
+  var brn = document.getElementById('btn-retry');
+
+  rv.textContent = code;
+  rb.style.display = 'block';
+
+  // ── Kirim ke GAS app via Firebase RTDB ──
+  // Firebase RTDB sebagai jembatan: scanner tulis → GAS app baca & isi field
+  rh.textContent = 'Mengirim ke aplikasi...';
+  try {
+    var payload = JSON.stringify({
+      code   : code,
+      target : QR_TARGET,
+      ts     : Date.now()
     });
-
-    // ═══════════════════════════════════════════════════════════
-    // SCANNER FUNCTIONS
-    // ═══════════════════════════════════════════════════════════
-    function startScanner() {
-      if (isScanning) return;
-      
-      html5QrcodeScanner = new Html5Qrcode("reader");
-      
-      const config = { 
-        fps: 10, 
-        qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.0
-      };
-      
-      html5QrcodeScanner.start(
-        { facingMode: "environment" }, 
-        config,
-        onScanSuccess,
-        onScanFailure
-      ).then(() => {
-        isScanning = true;
-        document.getElementById('stopBtn').disabled = false;
-        showStatus('✅ Kamera aktif. Arahkan ke QR Code.', 'success');
-        console.log('✅ Scanner started');
-      }).catch(err => {
-        console.error('❌ Failed to start scanner:', err);
-        showStatus('❌ Gagal mengakses kamera: ' + err, 'error');
-      });
+    var res = await fetch(FB_URL, { method: 'PUT', body: payload });
+    if (res.ok) {
+      rh.textContent = '✓ Terkirim! Field akan terisi otomatis.';
+      setTimeout(function() { window.close(); }, 1200);
+    } else {
+      throw new Error('HTTP ' + res.status);
     }
-
-    function stopScanner() {
-      if (!isScanning || !html5QrcodeScanner) return;
-      
-      html5QrcodeScanner.stop().then(() => {
-        isScanning = false;
-        document.getElementById('stopBtn').disabled = true;
-        showStatus('⏸️ Scanner dihentikan', 'info');
-      }).catch(err => {
-        console.error('❌ Failed to stop scanner:', err);
-      });
+  } catch(e) {
+    // Fallback: postMessage (mungkin berhasil di beberapa browser)
+    if (window.opener && !window.opener.closed) {
+      try { window.opener.postMessage({ type: 'QR_RESULT', code: code, target: QR_TARGET }, '*'); } catch(x) {}
     }
+    rh.textContent = 'Salin kode di atas, lalu ketik manual jika perlu.';
+    brn.style.display = 'block';
+  }
+}
 
-    // ═══════════════════════════════════════════════════════════
-    // ✅ SCAN SUCCESS - LANGSUNG REDIRECT DENGAN HASIL
-    // ═══════════════════════════════════════════════════════════
-    function onScanSuccess(decodedText, decodedResult) {
-      console.log('✅ SCAN SUCCESS:', decodedText);
-      
-      stopScanner();
-      
-      if (!callbackUrl) {
-        showStatus('❌ Callback URL tidak ditemukan!', 'error');
-        return;
-      }
-      
-      // ✅ Tambahkan hasil scan ke callback URL
-      const separator = callbackUrl.indexOf('?') >= 0 ? '&' : '?';
-      const finalUrl = callbackUrl + separator + 'code=' + encodeURIComponent(decodedText);
-      
-      console.log('🚀 Redirecting to:', finalUrl);
-      showStatus('✅ Scan berhasil: ' + decodedText + '<br>🔄 Mengalihkan...', 'success');
-      
-      setTimeout(function() {
-        window.top.location.href = finalUrl;
-      }, 1000);
-    }
-
-    function onScanFailure(error) {
-      // Ignore scan failures (normal saat tidak ada QR di frame)
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // HELPER
-    // ═══════════════════════════════════════════════════════════
-    function showStatus(message, type) {
-      const statusEl = document.getElementById('status');
-      if (statusEl) {
-        statusEl.innerHTML = message;
-        statusEl.className = 'status ' + (type || 'info');
-      }
-    }
-  </script>
+// ── Start on load ──
+window.addEventListener('load', startScanner);
+</script>
 </body>
 </html>
