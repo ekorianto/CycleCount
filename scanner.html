@@ -159,31 +159,43 @@
     // ✅ SCAN SUCCESS HANDLER — INI YANG PENTING!
     // ═══════════════════════════════════════════════════════════
     function onScanSuccess(decodedText, decodedResult) {
-      console.log('✅ SCAN SUCCESS:', decodedText);
-      console.log('📦 Result object:', decodedResult);
+  console.log('✅ SCAN SUCCESS:', decodedText);
+  
+  stopScanner();
+  
+  if (!callbackUrl) {
+    showStatus('❌ Callback URL tidak ditemukan!', 'error');
+    return;
+  }
+  
+  // ✅ Ambil scanId dari callback URL
+  const urlParams = new URLSearchParams(callbackUrl.split('?')[1] || '');
+  const scanId = urlParams.get('scanId');
+  
+  console.log('🔑 Scan ID:', scanId);
+  
+  if (scanId) {
+    // ✅ UPDATE FIREBASE dengan hasil scan
+    firebase.database().ref('scans/' + scanId).update({
+      code: decodedText,
+      status: 'done',
+      scannedAt: Date.now()
+    }).then(function() {
+      console.log('✅ Scan result saved to Firebase');
+      showStatus('✅ Scan berhasil: ' + decodedText + '<br>🔄 Mengalihkan...', 'success');
       
-      // Stop scanner agar tidak scan berulang
-      stopScanner();
-      
-      // ✅ Cek apakah callback URL ada
-      if (!callbackUrl) {
-        showStatus('❌ Callback URL tidak ditemukan!', 'error');
-        return;
-      }
-      
-      // ✅ Tambahkan hasil scan ke callback URL
-      // Format: callbackUrl + &code=HASIL_SCAN
-      const finalUrl = callbackUrl + '&code=' + encodeURIComponent(decodedText);
-      
-      console.log('🚀 Redirecting to:', finalUrl);
-      
-      showStatus('✅ Scan berhasil: ' + decodedText + '<br>🔄 Mengalihkan kembali ke aplikasi...', 'success');
-      
-      // ✅ Redirect setelah 1 detik (kasih waktu user lihat hasil)
       setTimeout(function() {
-        window.top.location.href = finalUrl;
+        window.top.location.href = callbackUrl;
       }, 1000);
-    }
+    }).catch(function(err) {
+      console.error('❌ Firebase error:', err);
+      showStatus('❌ Gagal simpan ke Firebase: ' + err, 'error');
+    });
+  } else {
+    console.error('❌ No scanId found');
+    showStatus('❌ Scan ID tidak ditemukan!', 'error');
+  }
+}
 
     function onScanFailure(error) {
       // Ignore scan failures (normal saat tidak ada QR di frame)
