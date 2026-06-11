@@ -6,11 +6,7 @@
   <title>QR Code Scanner</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📷</text></svg>">
   
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-  
-  <!-- QR Scanner -->
+  <!-- QR Scanner Library -->
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   
   <style>
@@ -62,21 +58,11 @@
     }
     button:hover { background: #1d4ed8; }
     button:disabled { background: #9ca3af; cursor: not-allowed; }
-    .info-box {
-      background: #f0f9ff;
-      border: 1px solid #bae6fd;
-      border-radius: 8px;
-      padding: 10px;
-      margin-bottom: 15px;
-      font-size: 0.85rem;
-      color: #0369a1;
-    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>📷 QR Code Scanner</h1>
-    <div id="infoBox" class="info-box" style="display:none"></div>
     <div id="reader"></div>
     <div id="status" class="status info">Menyiapkan...</div>
     <button id="stopBtn" onclick="stopScanner()" disabled>Stop Scanner</button>
@@ -84,29 +70,13 @@
 
   <script>
     // ═══════════════════════════════════════════════════════════
-    // FIREBASE CONFIG - SAMA DENGAN APP ANDA
-    // ═══════════════════════════════════════════════════════════
-    const firebaseConfig = {
-      apiKey: "AIzaSyAc2WnRK1TG96y1GmegH_VyJI_X4Zi0jxE",
-      authDomain: "reservasi-efa36.firebaseapp.com",
-      databaseURL: "https://reservasi-efa36-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "reservasi-efa36",
-      storageBucket: "reservasi-efa36.appspot.com",
-      messagingSenderId: "123456789",
-      appId: "1:123456789:web:abcdef123456"
-    };
-
-    // ═══════════════════════════════════════════════════════════
     // GLOBAL VARIABLES
     // ═══════════════════════════════════════════════════════════
     let html5QrcodeScanner = null;
     let isScanning = false;
-    let scanId = '';
     let callbackUrl = '';
     let userName = '';
     let processType = 'fg-wh';
-    let firebaseReady = false;
-    let fbDb = null;
 
     // ═══════════════════════════════════════════════════════════
     // INITIALIZATION
@@ -114,90 +84,50 @@
     window.addEventListener('DOMContentLoaded', function() {
       console.log('🚀 Scanner page loaded');
       
-      // ✅ Initialize Firebase
       try {
-        if (!firebase.apps.length) {
-          firebase.initializeApp(firebaseConfig);
-        }
-        fbDb = firebase.database();
-        firebaseReady = true;
-        console.log('✅ Firebase initialized');
-      } catch(e) {
-        console.error('❌ Firebase init error:', e);
-        showStatus('❌ Firebase error: ' + e.message, 'error');
-        return;
-      }
-      
-      // ✅ Get URL parameters
-      const urlParams = new URLSearchParams(window.location.search);
-      const callbackParam = urlParams.get('callback') || '';
-      userName = urlParams.get('u') || 'User';
-      
-      console.log('📋 Callback param:', callbackParam);
-      console.log('👤 User:', userName);
-      
-      // ✅ Decode callback URL
-      if (callbackParam) {
-        try {
-          // Decode URL-encoded base64
-          const decodedB64 = decodeURIComponent(callbackParam);
-          console.log('📦 Decoded base64:', decodedB64);
-          
-          // Parse base64 to get callback data
-          const callbackData = b64Dec(decodedB64);
-          console.log('📦 Parsed callback data:', callbackData);
-          
-          if (callbackData && callbackData.url) {
-            callbackUrl = callbackData.url;
-            processType = callbackData.processType || 'fg-wh';
-            scanId = callbackData.scanId || '';
+        // ✅ Get URL parameters - callback adalah URL yang sudah di-encode
+        const urlParams = new URLSearchParams(window.location.search);
+        const callbackParam = urlParams.get('callback') || '';
+        userName = urlParams.get('u') || 'User';
+        
+        console.log('📋 Raw callback param:', callbackParam);
+        console.log('👤 User:', userName);
+        
+        // ✅ Decode URL-encoded callback
+        if (callbackParam) {
+          try {
+            // Callback sudah URL-encoded, decode saja
+            callbackUrl = decodeURIComponent(callbackParam);
+            console.log('✅ Decoded callback URL:', callbackUrl);
             
-            // Show info
-            const infoBox = document.getElementById('infoBox');
-            infoBox.style.display = 'block';
-            infoBox.innerHTML = '👤 User: <strong>' + userName + '</strong><br>📋 Proses: <strong>' + processType + '</strong><br>🔑 Scan ID: <strong>' + scanId + '</strong>';
-            
-            console.log('✅ Callback URL:', callbackUrl);
-            console.log('✅ Process type:', processType);
-            console.log('✅ Scan ID:', scanId);
-          } else {
-            throw new Error('Invalid callback data structure');
+            // Extract process type dari callback URL jika ada
+            try {
+              const callbackParams = new URLSearchParams(callbackUrl.split('?')[1] || '');
+              processType = callbackParams.get('t') || 'fg-wh';
+              console.log('✅ Process type:', processType);
+            } catch(e) {
+              console.warn('⚠️ Could not extract process type:', e);
+            }
+          } catch(e) {
+            console.error('❌ Failed to decode callback:', e);
+            showStatus('❌ Gagal decode callback: ' + e.message, 'error');
+            return;
           }
-        } catch(e) {
-          console.error('❌ Failed to decode callback:', e);
-          showStatus('❌ Gagal decode callback: ' + e.message, 'error');
+        }
+        
+        if (!callbackUrl) {
+          showStatus('❌ Callback URL tidak ditemukan! Silakan buka dari aplikasi.', 'error');
           return;
         }
+        
+        showStatus('📷 Menyiapkan kamera...', 'info');
+        startScanner();
+        
+      } catch(e) {
+        console.error('❌ Initialization error:', e);
+        showStatus('❌ Error: ' + e.message, 'error');
       }
-      
-      if (!callbackUrl) {
-        showStatus('❌ Callback URL tidak ditemukan!', 'error');
-        return;
-      }
-      
-      if (!scanId) {
-        showStatus('❌ Scan ID tidak ditemukan!', 'error');
-        return;
-      }
-      
-      showStatus('📷 Menyiapkan kamera...', 'info');
-      startScanner();
     });
-
-    // ═══════════════════════════════════════════════════════════
-    // BASE64 HELPERS
-    // ═══════════════════════════════════════════════════════════
-    function b64Dec(str) {
-      if (!str) return null;
-      try {
-        var b64 = str.replace(/-/g,'+').replace(/_/g,'/');
-        while (b64.length % 4) b64 += '=';
-        return JSON.parse(decodeURIComponent(escape(atob(b64))));
-      } catch(e) { 
-        console.error('b64Dec error:', e);
-        return null; 
-      }
-    }
 
     // ═══════════════════════════════════════════════════════════
     // SCANNER FUNCTIONS
@@ -242,33 +172,32 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // ✅ SCAN SUCCESS - UPDATE FIREBASE
+    // ✅ SCAN SUCCESS - LANGSUNG REDIRECT DENGAN HASIL
     // ═══════════════════════════════════════════════════════════
     function onScanSuccess(decodedText, decodedResult) {
-  console.log('✅ SCAN SUCCESS:', decodedText);
-  
-  stopScanner();
-  
-  if (!callbackUrl) {
-    showStatus('❌ Callback URL tidak ditemukan!', 'error');
-    return;
-  }
-  
-  // ✅ LANGSUNG tambahkan hasil scan ke callback URL
-  // Format: callbackUrl + '&code=HASIL_SCAN'
-  var separator = callbackUrl.indexOf('?') >= 0 ? '&' : '?';
-  var finalUrl = callbackUrl + separator + 'code=' + encodeURIComponent(decodedText);
-  
-  console.log('🚀 Redirecting to:', finalUrl);
-  showStatus('✅ Scan berhasil: ' + decodedText + '<br>🔄 Mengalihkan...', 'success');
-  
-  setTimeout(function() {
-    window.top.location.href = finalUrl;
-  }, 1000);
-}
+      console.log('✅ SCAN SUCCESS:', decodedText);
+      
+      stopScanner();
+      
+      if (!callbackUrl) {
+        showStatus('❌ Callback URL tidak ditemukan!', 'error');
+        return;
+      }
+      
+      // ✅ Tambahkan hasil scan ke callback URL
+      const separator = callbackUrl.indexOf('?') >= 0 ? '&' : '?';
+      const finalUrl = callbackUrl + separator + 'code=' + encodeURIComponent(decodedText);
+      
+      console.log('🚀 Redirecting to:', finalUrl);
+      showStatus('✅ Scan berhasil: ' + decodedText + '<br>🔄 Mengalihkan...', 'success');
+      
+      setTimeout(function() {
+        window.top.location.href = finalUrl;
+      }, 1000);
+    }
 
     function onScanFailure(error) {
-      // Ignore
+      // Ignore scan failures (normal saat tidak ada QR di frame)
     }
 
     // ═══════════════════════════════════════════════════════════
