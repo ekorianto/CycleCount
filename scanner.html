@@ -207,32 +207,27 @@
     // ✅ SCAN SUCCESS - LANGSUNG REDIRECT DENGAN HASIL
     // ═══════════════════════════════════════════════════════════
     function onScanSuccess(decodedText, decodedResult) {
-      console.log('✅ SCAN SUCCESS:', decodedText);
-      
-      // Stop scanner
-      stopScanner();
-      
-      if (!callbackUrl) {
-        showStatus('❌ Callback URL tidak ditemukan!', 'error');
-        return;
-      }
-      
-      // ✅ Build final URL: callback + &code=HASIL_SCAN
-      const separator = callbackUrl.indexOf('?') >= 0 ? '&' : '?';
-      const finalUrl = callbackUrl + separator + 'code=' + encodeURIComponent(decodedText);
-      
-      console.log('🚀 Redirecting to:', finalUrl);
-      showStatus('✅ Scan berhasil: ' + decodedText + '<br> Mengalihkan kembali ke aplikasi...', 'success');
-      
-      setTimeout(function() {
-        window.top.location.href = finalUrl;
-      }, 1000);
-    }
-
-    function onScanFailure(error) {
-      // Ignore
-    }
-
+  console.log('✅ SCAN SUCCESS:', decodedText);
+  
+  stopScanner();
+  
+  if (!callbackUrl) {
+    showStatus('❌ Callback URL tidak ditemukan!', 'error');
+    return;
+  }
+  
+  // ✅ PENTING: Gunakan URL HASH (#) bukan query parameter (?)
+  // Hash tidak dikirim ke server, hanya dibaca JavaScript client-side
+  const separator = callbackUrl.indexOf('#') >= 0 ? '&' : '#';
+  const finalUrl = callbackUrl + separator + 'back=1&code=' + encodeURIComponent(decodedText);
+  
+  console.log('🚀 Redirecting to:', finalUrl);
+  showStatus('✅ Scan berhasil: ' + decodedText + '<br>🔄 Mengalihkan...', 'success');
+  
+  setTimeout(function() {
+    window.top.location.href = finalUrl;
+  }, 1000);
+}
     // ═══════════════════════════════════════════════════════════
     // HELPER
     // ═══════════════════════════════════════════════════════════
