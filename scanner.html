@@ -174,8 +174,9 @@
     // ═══════════════════════════════════════════════════════════
     // ✅ SCAN SUCCESS - LANGSUNG REDIRECT DENGAN HASIL
     // ═══════════════════════════════════════════════════════════
-    function onScanSuccess(decodedText, decodedResult) {
+   function onScanSuccess(decodedText, decodedResult) {
   console.log('✅ SCAN SUCCESS:', decodedText);
+  
   stopScanner();
   
   if (!callbackUrl) {
@@ -188,12 +189,11 @@
   const finalUrl = callbackUrl + separator + 'code=' + encodeURIComponent(decodedText);
   
   console.log('🚀 Redirecting to:', finalUrl);
-  showStatus('✅ Scan berhasil!<br>🔄 Redirecting...', 'success');
+  showStatus('✅ Scan berhasil: ' + decodedText + '<br>🔄 Mengalihkan...', 'success');
   
-  // Redirect LANGSUNG
   setTimeout(function() {
     window.top.location.href = finalUrl;
-  }, 500);
+  }, 1000);
 }
     function onScanFailure(error) {
       // Ignore scan failures (normal saat tidak ada QR di frame)
