@@ -203,72 +203,25 @@
     // ✅ SCAN SUCCESS HANDLER - FIREBASE UPDATE
     // ═══════════════════════════════════════════════════════════
     function onScanSuccess(decodedText, decodedResult) {
-      console.log('✅ SCAN SUCCESS:', decodedText);
-      
-      // Stop scanner immediately
-      stopScanner();
-      
-      // ✅ Check Firebase ready
-      if (!firebaseReady) {
-        console.error('❌ Firebase not ready');
-        showStatus('❌ Firebase belum siap. Coba lagi.', 'error');
-        return;
-      }
-      
-      // ✅ Check scanId
-      if (!scanId) {
-        console.error('❌ No scanId');
-        showStatus('❌ Scan ID tidak ditemukan!', 'error');
-        return;
-      }
-      
-      showStatus('✅ Scan berhasil: ' + decodedText + '<br>💾 Menyimpan ke Firebase...', 'success');
-      
-      // ✅ Update Firebase
-      try {
-        const db = firebase.database();
-        const ref = db.ref('scans/' + scanId);
-        
-        console.log('📝 Updating Firebase at:', 'scans/' + scanId);
-        
-        ref.update({
-          code: decodedText,
-          status: 'done',
-          scannedAt: Date.now()
-        }).then(function() {
-          console.log('✅ Firebase update SUCCESS');
-          showStatus('✅ Scan berhasil: ' + decodedText + '<br>🔄 Mengalihkan kembali ke aplikasi...', 'success');
-          
-          // Redirect after 1 second
-          setTimeout(function() {
-            console.log('🚀 Redirecting to:', callbackUrl);
-            window.top.location.href = callbackUrl;
-          }, 1000);
-          
-        }).catch(function(error) {
-          console.error('❌ Firebase update FAILED:', error);
-          showStatus('❌ Gagal simpan ke Firebase: ' + error.message, 'error');
-          
-          // Fallback: redirect anyway with code in URL
-          setTimeout(function() {
-            const fallbackUrl = callbackUrl + '&code=' + encodeURIComponent(decodedText);
-            console.log('🚀 Fallback redirect to:', fallbackUrl);
-            window.top.location.href = fallbackUrl;
-          }, 2000);
-        });
-        
-      } catch(e) {
-        console.error('❌ Exception:', e);
-        showStatus('❌ Error: ' + e.message, 'error');
-        
-        // Fallback: redirect with code in URL
-        setTimeout(function() {
-          const fallbackUrl = callbackUrl + '&code=' + encodeURIComponent(decodedText);
-          window.top.location.href = fallbackUrl;
-        }, 2000);
-      }
-    }
-
+  console.log('✅ SCAN SUCCESS:', decodedText);
+  
+  stopScanner();
+  
+  if (!callbackUrl) {
+    showStatus('❌ Callback URL tidak ditemukan!', 'error');
+    return;
+  }
+  
+  // ✅ TAMBAHKAN HASIL SCAN KE URL
+  const finalUrl = callbackUrl + '&code=' + encodeURIComponent(decodedText);
+  
+  console.log('🚀 Redirecting to:', finalUrl);
+  showStatus('✅ Scan berhasil: ' + decodedText + '<br>🔄 Mengalihkan...', 'success');
+  
+  setTimeout(function() {
+    window.top.location.href = finalUrl;
+  }, 1000);
+}
     function onScanFailure(error) {
       // Ignore scan failures (normal saat tidak ada QR di frame)
     }
